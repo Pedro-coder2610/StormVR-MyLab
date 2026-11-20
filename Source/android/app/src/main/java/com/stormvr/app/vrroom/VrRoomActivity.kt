@@ -1449,6 +1449,12 @@ class VrRoomActivity : Activity() {
         }
         val l1 = "GL ${state.glFps} fps  |  ARCore: $ar  |  Mãos: $hs"
         var l2 = tracker?.info() ?: "tracker não iniciado"
+        val gestureText = synchronized(state.handLock) {
+            val left = if (state.handValid[0]) "E: ${HandGesture.label(state.handGesture[0])}" else "E: —"
+            val right = if (state.handValid[1]) "D: ${HandGesture.label(state.handGesture[1])}" else "D: —"
+            "$left  $right"
+        }
+        l2 += " | gestos: $gestureText"
         if (renderer.camErr.isNotEmpty()) l2 += " | ${renderer.camErr}"
         if (renderer.arErr.isNotEmpty()) l2 += " | erro AR: ${renderer.arErr}"
         val sig = l1 + l2
@@ -1580,6 +1586,7 @@ class VrRoomActivity : Activity() {
             var pinch = false
             var closing = false
             var ratio = 1f
+            var gesture = HandGesture.NONE
             var px = 0f
             var py = 0f
             var pz = 0f
@@ -1590,10 +1597,16 @@ class VrRoomActivity : Activity() {
                         pinch = s.handPinch[i]
                         closing = s.handClosing[i]
                         ratio = s.handRatio[i]
+                        gesture = s.handGesture[i]
                         val p = s.handPts[i]
-                        px = (p[12] + p[24]) * 0.5f      // meio da pinça (pontas do polegar e do indicador)
-                        py = (p[13] + p[25]) * 0.5f
-                        pz = (p[14] + p[26]) * 0.5f
+                        if (gesture == HandGesture.POINT) {
+                            // Apontar move o cursor pela ponta do indicador; pinça continua sendo o clique.
+                            px = p[24]; py = p[25]; pz = p[26]
+                        } else {
+                            px = (p[12] + p[24]) * 0.5f
+                            py = (p[13] + p[25]) * 0.5f
+                            pz = (p[14] + p[26]) * 0.5f
+                        }
                     }
                 }
             }

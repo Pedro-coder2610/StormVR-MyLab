@@ -8,6 +8,27 @@ import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+/** Gestos reconhecidos a partir dos 21 pontos do MediaPipe. */
+object HandGesture {
+    const val NONE = 0
+    const val RELAXED = 1
+    const val OPEN = 2
+    const val POINT = 3
+    const val FIST = 4
+    const val PINCH = 5
+    const val THUMBS_UP = 6
+
+    fun label(value: Int): String = when (value) {
+        RELAXED -> "relaxada"
+        OPEN -> "mão aberta"
+        POINT -> "apontando"
+        FIST -> "mão fechada"
+        PINCH -> "pinça"
+        THUMBS_UP -> "positivo"
+        else -> "não detectada"
+    }
+}
+
 /** Tipos de alvo que um laser pode estar apontando. */
 object Hit {
     const val NONE = 0
@@ -95,6 +116,7 @@ class VrState {
     val handValid = BooleanArray(2)
     val handPinch = BooleanArray(2)
     val handRatio = floatArrayOf(1f, 1f)   // distância polegar-indicador / tamanho da mão
+    val handGesture = IntArray(2) { HandGesture.NONE } // gesto estabilizado: aberta, apontando, fechada, pinça...
     val handClosing = BooleanArray(2)      // pinça se fechando (cursor deve congelar)
     // bolinha da pinça = cursor (na linha olho -> alvo, na distância da mão)
     val ball = Array(2) { FloatArray(3) }

@@ -1,0 +1,54 @@
+{
+  "jsonid": "input_profile",
+  "controller_type": "stormvr_generic",
+  "input_bindingui_mode": "single_device",
+  "should_show_binding_errors": false,
+  "input_source": {
+    "/input/trigger": {
+      "type": "trigger",
+      "click": true,
+      "touch": true,
+      "value": true,
+      "order": 1
+    },
+    "/input/grip": {
+      "type": "trigger",
+      "click": true,
+      "value": true,
+      "order": 2
+    },
+    "/input/a": {
+      "type": "button",
+      "click": true,
+      "order": 3
+    },
+    "/input/b": {
+      "type": "button",
+      "click": true,
+      "order": 4
+    },
+    "/input/x": {
+      "type": "button",
+      "click": true,
+      "order": 5
+    },
+    "/input/y": {
+      "type": "button",
+      "click": true,
+      "order": 6
+    },
+    "/input/system": {
+      "type": "button",
+      "click": true,
+      "order": 7
+    },
+    "/input/thumbstick": {
+      "type": "joystick",
+      "click": true,
+      "touch": true,
+      "x": true,
+      "y": true,
+      "order": 8
+    }
+  }
+}

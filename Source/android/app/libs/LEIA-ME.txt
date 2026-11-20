@@ -1,0 +1,3 @@
+S Pen Remote SDK (Samsung) — JÁ INCLUÍDO nesta pasta:
+  spenremote-v1.0.1.jar   sdk-v1.0.0.jar
+O build do app (build.gradle.kts) já inclui todos os .jar desta pasta. A S Pen funciona em Galaxy com S Pen Bluetooth (S Ultra / Note / Tab S).

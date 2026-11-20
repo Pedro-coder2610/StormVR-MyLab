@@ -1,0 +1,21 @@
+# Android / Gradle generated files
+.gradle/
+**/.gradle/
+**/build/
+**/local.properties
+**/.idea/
+*.iml
+.externalNativeBuild/
+.cxx/
+
+# Android packages and logs
+*.apk
+*.aab
+*.ap_
+*.log
+
+# IDE / OS files
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

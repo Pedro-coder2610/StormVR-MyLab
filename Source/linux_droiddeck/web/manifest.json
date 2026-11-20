@@ -1,0 +1,2316 @@
+{
+ "optsets": {
+  "kOptOut": [
+   "Nenhum (desativado)",
+   "Direito: Trigger",
+   "Direito: Grip",
+   "Direito: A",
+   "Direito: B",
+   "Direito: Sistema",
+   "Direito: Clique stick",
+   "Esquerdo: X",
+   "Esquerdo: Y",
+   "Esquerdo: Menu",
+   "Esquerdo: Trigger",
+   "Esquerdo: Grip",
+   "Esquerdo: Clique stick",
+   "Ação: Recentrar controle",
+   "Ação: Recentrar cabeça",
+   "Ação: Recentrar tudo",
+   "Ação: Zerar yaw/pitch/roll",
+   "Ação: Calibrar giroscópio",
+   "Ação: Ligar/desligar Arm Model",
+   "Ação: Embreagem (segurar)",
+   "Index direito: fechar Polegar",
+   "Index direito: fechar Indicador",
+   "Index direito: fechar Médio",
+   "Index direito: fechar Anelar",
+   "Index direito: fechar Mindinho",
+   "Index esquerdo: fechar Polegar",
+   "Index esquerdo: fechar Indicador",
+   "Index esquerdo: fechar Médio",
+   "Index esquerdo: fechar Anelar",
+   "Index esquerdo: fechar Mindinho",
+   "Trigger",
+   "Grip",
+   "Bumper",
+   "Clique do stick",
+   "A",
+   "B",
+   "X",
+   "Y",
+   "Menu",
+   "View",
+   "D-pad ↑",
+   "D-pad →",
+   "D-pad ↓",
+   "D-pad ←",
+   "Sistema"
+  ]
+ },
+ "tabs": [
+  {
+   "name": "Geral",
+   "widgets": [
+    {
+     "t": "check",
+     "label": "MODO TV: monitor como headset, parado e sem estéreo (reinicie o SteamVR)",
+     "key": "hmd_monitor_mode",
+     "def": false
+    },
+    {
+     "t": "check",
+     "label": "Zerar os eixos dos controles ao conectar (corrige \"de cabeça pra baixo\")",
+     "key": "auto_zero_connect",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Teclado ativo",
+     "key": "keys_enabled",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Controle direito conectado",
+     "key": "right_enabled",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Controle esquerdo conectado",
+     "key": "left_enabled",
+     "def": true
+    },
+    {
+     "t": "button",
+     "label": "Recentralizar a cabeça",
+     "cmd": 4
+    },
+    {
+     "t": "button",
+     "label": "Recentralizar controle esquerdo",
+     "cmd": 11
+    },
+    {
+     "t": "button",
+     "label": "Recentralizar controle direito",
+     "cmd": 10
+    },
+    {
+     "t": "check",
+     "label": "Girar a cabeça 180° (se o mundo está de cabeça pra baixo)",
+     "key": "head_flip_180",
+     "def": false
+    },
+    {
+     "t": "button",
+     "label": "Resetar piso / espaço de jogo do SteamVR",
+     "cmd": 12
+    },
+    {
+     "t": "button",
+     "label": "Reiniciar o SteamVR",
+     "cmd": 13
+    },
+    {
+     "t": "slider",
+     "label": "Previsão de movimento dos controles (ms)",
+     "key": "predict_ms",
+     "min": 0.0,
+     "max": 60.0,
+     "def": 15.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "check",
+     "label": "Controles por quaternion (corrige apontar p/ cima e p/ baixo)",
+     "key": "ctl_quat",
+     "def": true
+    },
+    {
+     "t": "slider",
+     "label": "Suavização dos controles (%)",
+     "key": "ctl_smooth",
+     "min": 0.0,
+     "max": 100.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "check",
+     "label": "Controles seguem o deslocamento do headset",
+     "key": "follow_hmd",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Girar também com a direção do headset",
+     "key": "follow_hmd_rot",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Abrir o painel WEB junto com o SteamVR",
+     "key": "web_autostart",
+     "def": true
+    },
+    {
+     "t": "slider",
+     "label": "Velocidade de movimento (m/s)",
+     "key": "move_speed",
+     "min": 0.05,
+     "max": 2.0,
+     "def": 0.5,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Velocidade de rotação (°/s)",
+     "key": "rotate_speed",
+     "min": 10.0,
+     "max": 360.0,
+     "def": 90.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Altura no modo fixo (m)",
+     "key": "fixed_height",
+     "min": 0.5,
+     "max": 2.2,
+     "def": 1.3,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "group",
+     "title": "Posição dos controles (relativa à cabeça)"
+    },
+    {
+     "t": "slider",
+     "label": "Direito — X: esquerda ↔ direita",
+     "key": "right_x",
+     "min": -1.0,
+     "max": 1.0,
+     "def": 0.2,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Direito — Y: altura",
+     "key": "right_y",
+     "min": -1.0,
+     "max": 1.0,
+     "def": -0.3,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Direito — Z: profundidade (− = à frente)",
+     "key": "right_z",
+     "min": -1.5,
+     "max": 0.5,
+     "def": -0.35,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Esquerdo — X: esquerda ↔ direita",
+     "key": "left_x",
+     "min": -1.0,
+     "max": 1.0,
+     "def": -0.2,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Esquerdo — Y: altura",
+     "key": "left_y",
+     "min": -1.0,
+     "max": 1.0,
+     "def": -0.3,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Esquerdo — Z: profundidade (− = à frente)",
+     "key": "left_z",
+     "min": -1.5,
+     "max": 0.5,
+     "def": -0.35,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "button",
+     "label": "Resetar posições",
+     "cmd": "reset_pos"
+    },
+    {
+     "t": "button",
+     "label": "Restaurar tudo",
+     "cmd": "reset_all"
+    }
+   ]
+  },
+  {
+   "name": "Controles",
+   "widgets": [
+    {
+     "t": "cycle",
+     "label": "Quem fica em cada mão",
+     "key": "ctl_assign",
+     "opts": [
+      "Automático (mão de cada controle)",
+      "Ordem de conexão (1º = direita)",
+      "IP fixo por mão"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "t": "cycle",
+     "label": "Controle usa",
+     "key": "src_mode",
+     "opts": [
+      "Auto (controle se houver, senão teclado)",
+      "Só controles (ESP32/celular)",
+      "Só teclado"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "t": "check",
+     "label": "Trocar mãos (direita ↔ esquerda)",
+     "key": "ctl_swap",
+     "def": false
+    },
+    {
+     "t": "check",
+     "label": "Recentrar yaw ao conectar",
+     "key": "auto_center",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Combo L3 + Start recentra yaw",
+     "key": "combo_recenter",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Esconder o controle se ele cair",
+     "key": "hide_lost",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Sem pacotes por quanto tempo = desconectado (s)",
+     "key": "esp_timeout",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 0.5,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "button",
+     "label": "Recentrar yaw",
+     "cmd": 0
+    },
+    {
+     "t": "button",
+     "label": "Zerar yaw/pitch/roll",
+     "cmd": 1
+    },
+    {
+     "t": "button",
+     "label": "Calibrar giroscópios",
+     "cmd": 2
+    },
+    {
+     "t": "group",
+     "title": "Mãos rastreadas pela câmera do celular"
+    },
+    {
+     "t": "check",
+     "label": "Posição da mão dir.",
+     "key": "hands_pos_right",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Pinça = trigger dir.",
+     "key": "hands_pinch_right",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Direção da mão dir.",
+     "key": "hands_aim_right",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Posição da mão esq.",
+     "key": "hands_pos_left",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Pinça = trigger esq.",
+     "key": "hands_pinch_left",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Direção da mão esq.",
+     "key": "hands_aim_left",
+     "def": true
+    },
+    {
+     "t": "cycle",
+     "label": "Canal do ESP32",
+     "key": "esp_channel",
+     "opts": [
+      "Auto",
+      "SteamVR (Wi-Fi)",
+      "Android (Bluetooth)"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 2
+    },
+    {
+     "t": "slider",
+     "label": "Suavização da posição das mãos rastreadas (%)",
+     "key": "hands_smooth",
+     "min": 0.0,
+     "max": 100.0,
+     "def": 45.0,
+     "step": 0.1,
+     "int": false
+    }
+   ]
+  },
+  {
+   "name": "Headset",
+   "widgets": [
+    {
+     "t": "button",
+     "label": "Recentrar cabeça",
+     "cmd": 4
+    },
+    {
+     "t": "check",
+     "label": "Forçar tela cheia (-202)",
+     "key": "hmd_force_fs",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Tornar principal ao abrir o SteamVR",
+     "key": "hmd_make_primary",
+     "def": true
+    },
+    {
+     "t": "cycle",
+     "label": "Resolução do monitor",
+     "key": "hmd_res_mode",
+     "opts": [
+      "Resolução atual",
+      "1280×720",
+      "1920×1080",
+      "2560×1440",
+      "3840×2160"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 4
+    },
+    {
+     "t": "cycle",
+     "label": "Taxa de atualização",
+     "key": "hmd_hz_mode",
+     "opts": [
+      "60 Hz",
+      "72 Hz",
+      "90 Hz",
+      "120 Hz"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "cycle",
+     "label": "Rastreamento",
+     "key": "track_mode",
+     "opts": [
+      "3DoF (ignorar posição)",
+      "Automático (segue o app)"
+     ],
+     "def": 1,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "t": "slider",
+     "label": "Altura do usuário (m)",
+     "key": "user_height",
+     "min": 1.0,
+     "max": 2.6,
+     "def": 1.65,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Ajuste de altura (m)",
+     "key": "head_height_off",
+     "min": -1.5,
+     "max": 2.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização da cabeça (%)",
+     "key": "head_smooth",
+     "min": 0.0,
+     "max": 100.0,
+     "def": 35.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Previsão da cabeça (ms)",
+     "key": "head_predict_ms",
+     "min": 0.0,
+     "max": 60.0,
+     "def": 20.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Girar o mundo (°)",
+     "key": "world_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Rolagem da imagem (°)",
+     "key": "head_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "FOV horizontal (°)",
+     "key": "hmd_fov_h",
+     "min": 40.0,
+     "max": 130.0,
+     "def": 90.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "FOV vertical (°)",
+     "key": "hmd_fov_v",
+     "min": 40.0,
+     "max": 130.0,
+     "def": 90.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Distância entre os olhos / IPD (m)",
+     "key": "hmd_ipd",
+     "min": 0.05,
+     "max": 0.08,
+     "def": 0.063,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Distância entre as 2 imagens (%)",
+     "key": "hmd_sep",
+     "min": -10.0,
+     "max": 10.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Distorção k1",
+     "key": "hmd_k1",
+     "min": -1.0,
+     "max": 2.0,
+     "def": 0.34,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Distorção k2",
+     "key": "hmd_k2",
+     "min": -1.0,
+     "max": 2.0,
+     "def": 0.55,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Escala de renderização",
+     "key": "hmd_render_scale",
+     "min": 0.5,
+     "max": 2.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    }
+   ]
+  },
+  {
+   "name": "Eixos",
+   "widgets": [
+    {
+     "t": "group",
+     "title": "Controle DIREITO"
+    },
+    {
+     "t": "cycle",
+     "label": "Yaw ←",
+     "key": "ax_src_yaw",
+     "opts": [
+      "MPU Roll (X)",
+      "MPU Pitch (Y)",
+      "MPU Yaw (Z)",
+      "Nenhum"
+     ],
+     "def": 2,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "check",
+     "label": "Yaw: ativo",
+     "key": "ax_en_yaw",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Yaw: inverter",
+     "key": "ax_inv_yaw",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Ganho — Yaw",
+     "key": "ax_gain_yaw",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização (ms) — Yaw",
+     "key": "ax_smooth_yaw",
+     "min": 0.0,
+     "max": 250.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "cycle",
+     "label": "Pitch ←",
+     "key": "ax_src_pitch",
+     "opts": [
+      "MPU Roll (X)",
+      "MPU Pitch (Y)",
+      "MPU Yaw (Z)",
+      "Nenhum"
+     ],
+     "def": 1,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "check",
+     "label": "Pitch: ativo",
+     "key": "ax_en_pitch",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Pitch: inverter",
+     "key": "ax_inv_pitch",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Ganho — Pitch",
+     "key": "ax_gain_pitch",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização (ms) — Pitch",
+     "key": "ax_smooth_pitch",
+     "min": 0.0,
+     "max": 250.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "cycle",
+     "label": "Roll ←",
+     "key": "ax_src_roll",
+     "opts": [
+      "MPU Roll (X)",
+      "MPU Pitch (Y)",
+      "MPU Yaw (Z)",
+      "Nenhum"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "check",
+     "label": "Roll: ativo",
+     "key": "ax_en_roll",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Roll: inverter",
+     "key": "ax_inv_roll",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Ganho — Roll",
+     "key": "ax_gain_roll",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização (ms) — Roll",
+     "key": "ax_smooth_roll",
+     "min": 0.0,
+     "max": 250.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta MPU Roll (X)",
+     "key": "mpu_dz_roll",
+     "min": 0.0,
+     "max": 15.0,
+     "def": 0.3,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta MPU Pitch (Y)",
+     "key": "mpu_dz_pitch",
+     "min": 0.0,
+     "max": 15.0,
+     "def": 0.3,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta MPU Yaw (Z)",
+     "key": "mpu_dz_yaw",
+     "min": 0.0,
+     "max": 15.0,
+     "def": 1.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Deriva do yaw (°/min)",
+     "key": "yaw_drift",
+     "min": -15.0,
+     "max": 15.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "group",
+     "title": "Controle ESQUERDO"
+    },
+    {
+     "t": "cycle",
+     "label": "Yaw ←",
+     "key": "ax_src_yaw_left",
+     "opts": [
+      "MPU Roll (X)",
+      "MPU Pitch (Y)",
+      "MPU Yaw (Z)",
+      "Nenhum"
+     ],
+     "def": 2,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "check",
+     "label": "Yaw: ativo",
+     "key": "ax_en_yaw_left",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Yaw: inverter",
+     "key": "ax_inv_yaw_left",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Ganho — Yaw",
+     "key": "ax_gain_yaw_left",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização (ms) — Yaw",
+     "key": "ax_smooth_yaw_left",
+     "min": 0.0,
+     "max": 250.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "cycle",
+     "label": "Pitch ←",
+     "key": "ax_src_pitch_left",
+     "opts": [
+      "MPU Roll (X)",
+      "MPU Pitch (Y)",
+      "MPU Yaw (Z)",
+      "Nenhum"
+     ],
+     "def": 1,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "check",
+     "label": "Pitch: ativo",
+     "key": "ax_en_pitch_left",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Pitch: inverter",
+     "key": "ax_inv_pitch_left",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Ganho — Pitch",
+     "key": "ax_gain_pitch_left",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização (ms) — Pitch",
+     "key": "ax_smooth_pitch_left",
+     "min": 0.0,
+     "max": 250.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "cycle",
+     "label": "Roll ←",
+     "key": "ax_src_roll_left",
+     "opts": [
+      "MPU Roll (X)",
+      "MPU Pitch (Y)",
+      "MPU Yaw (Z)",
+      "Nenhum"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 3
+    },
+    {
+     "t": "check",
+     "label": "Roll: ativo",
+     "key": "ax_en_roll_left",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Roll: inverter",
+     "key": "ax_inv_roll_left",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Ganho — Roll",
+     "key": "ax_gain_roll_left",
+     "min": 0.1,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Suavização (ms) — Roll",
+     "key": "ax_smooth_roll_left",
+     "min": 0.0,
+     "max": 250.0,
+     "def": 25.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta MPU Roll (X)",
+     "key": "mpu_dz_roll_left",
+     "min": 0.0,
+     "max": 15.0,
+     "def": 0.3,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta MPU Pitch (Y)",
+     "key": "mpu_dz_pitch_left",
+     "min": 0.0,
+     "max": 15.0,
+     "def": 0.3,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta MPU Yaw (Z)",
+     "key": "mpu_dz_yaw_left",
+     "min": 0.0,
+     "max": 15.0,
+     "def": 1.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Deriva do yaw (°/min)",
+     "key": "yaw_drift_left",
+     "min": -15.0,
+     "max": 15.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "button",
+     "label": "Recentrar yaw",
+     "cmd": 0
+    },
+    {
+     "t": "button",
+     "label": "Zerar yaw/pitch/roll",
+     "cmd": 1
+    },
+    {
+     "t": "button",
+     "label": "Calibrar giroscópio",
+     "cmd": 2
+    }
+   ]
+  },
+  {
+   "name": "Analógico",
+   "widgets": [
+    {
+     "t": "group",
+     "title": "Controle DIREITO"
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta do eixo X",
+     "key": "stick_dz_x",
+     "min": 0.0,
+     "max": 0.6,
+     "def": 0.1,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta do eixo Y",
+     "key": "stick_dz_y",
+     "min": 0.0,
+     "max": 0.6,
+     "def": 0.1,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Sensibilidade (ganho da saída)",
+     "key": "stick_sens",
+     "min": 0.5,
+     "max": 2.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Curva de resposta (1 = linear)",
+     "key": "stick_gamma",
+     "min": 0.5,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Borda: fração do curso = 100%",
+     "key": "stick_edge",
+     "min": 0.6,
+     "max": 1.0,
+     "def": 0.95,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "check",
+     "label": "Inverter X (VRx)",
+     "key": "stick_inv_x",
+     "def": false
+    },
+    {
+     "t": "check",
+     "label": "Inverter Y (VRy)",
+     "key": "stick_inv_y",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Trocar eixos X ↔ Y",
+     "key": "stick_swap",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Rampa do Trigger (1/s)",
+     "key": "trig_ramp",
+     "min": 2.0,
+     "max": 60.0,
+     "def": 12.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Rampa do Grip (1/s)",
+     "key": "grip_ramp",
+     "min": 2.0,
+     "max": 60.0,
+     "def": 12.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "group",
+     "title": "Controle ESQUERDO"
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta do eixo X",
+     "key": "stick_dz_x_left",
+     "min": 0.0,
+     "max": 0.6,
+     "def": 0.1,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Zona morta do eixo Y",
+     "key": "stick_dz_y_left",
+     "min": 0.0,
+     "max": 0.6,
+     "def": 0.1,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Sensibilidade (ganho da saída)",
+     "key": "stick_sens_left",
+     "min": 0.5,
+     "max": 2.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Curva de resposta (1 = linear)",
+     "key": "stick_gamma_left",
+     "min": 0.5,
+     "max": 3.0,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Borda: fração do curso = 100%",
+     "key": "stick_edge_left",
+     "min": 0.6,
+     "max": 1.0,
+     "def": 0.95,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "check",
+     "label": "Inverter X (VRx)",
+     "key": "stick_inv_x_left",
+     "def": false
+    },
+    {
+     "t": "check",
+     "label": "Inverter Y (VRy)",
+     "key": "stick_inv_y_left",
+     "def": true
+    },
+    {
+     "t": "check",
+     "label": "Trocar eixos X ↔ Y",
+     "key": "stick_swap_left",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Rampa do Trigger (1/s)",
+     "key": "trig_ramp_left",
+     "min": 2.0,
+     "max": 60.0,
+     "def": 12.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Rampa do Grip (1/s)",
+     "key": "grip_ramp_left",
+     "min": 2.0,
+     "max": 60.0,
+     "def": 12.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "button",
+     "label": "Calibrar centro (solte o analógico)",
+     "cmd": 3
+    }
+   ]
+  },
+  {
+   "name": "Perfis",
+   "widgets": [
+    {
+     "t": "cycle",
+     "label": "Perfil do controle (trocar exige reiniciar o SteamVR)",
+     "key": "ctl_profile",
+     "opts": [
+      "Oculus Touch",
+      "HTC Vive",
+      "Valve Index (exp.)",
+      "Genérico StormVR (exp.)",
+      "Steam Frame Controller (exp.)"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 0
+    },
+    {
+     "t": "slider",
+     "label": "Limiar de clique do Trigger/Grip — direito",
+     "key": "click_thr",
+     "min": 0.3,
+     "max": 1.0,
+     "def": 0.9,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Limiar de clique do Trigger/Grip — esquerdo",
+     "key": "click_thr_left",
+     "min": 0.3,
+     "max": 1.0,
+     "def": 0.9,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Oculus — rotação do controle: inclinar (pitch, °)",
+     "key": "rot_off_oculus_pitch",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Oculus — rotação do controle: girar (yaw, °)",
+     "key": "rot_off_oculus_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Oculus — rotação do controle: rolar (roll, °)",
+     "key": "rot_off_oculus_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Vive — rotação do controle: inclinar (pitch, °)",
+     "key": "rot_off_vive_pitch",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Vive — rotação do controle: girar (yaw, °)",
+     "key": "rot_off_vive_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Vive — rotação do controle: rolar (roll, °)",
+     "key": "rot_off_vive_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Index — rotação do controle: inclinar (pitch, °)",
+     "key": "rot_off_index_pitch",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Index — rotação do controle: girar (yaw, °)",
+     "key": "rot_off_index_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Index — rotação do controle: rolar (roll, °)",
+     "key": "rot_off_index_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Genérico — rotação do controle: inclinar (pitch, °)",
+     "key": "rot_off_generic_pitch",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Genérico — rotação do controle: girar (yaw, °)",
+     "key": "rot_off_generic_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Genérico — rotação do controle: rolar (roll, °)",
+     "key": "rot_off_generic_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Frame — rotação do controle: inclinar (pitch, °)",
+     "key": "rot_off_frame_pitch",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Frame — rotação do controle: girar (yaw, °)",
+     "key": "rot_off_frame_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Frame — rotação do controle: rolar (roll, °)",
+     "key": "rot_off_frame_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    }
+   ]
+  },
+  {
+   "name": "Arm Model",
+   "widgets": [
+    {
+     "t": "check",
+     "label": "Ativar modelo de braço virtual (estimativa)",
+     "key": "arm_enabled",
+     "def": false
+    },
+    {
+     "t": "cycle",
+     "label": "Modo",
+     "key": "arm_mode",
+     "opts": [
+      "Completo (ombro + cotovelo)",
+      "Simples (esfera / cabo)"
+     ],
+     "def": 0,
+     "min": 0,
+     "max": 1
+    },
+    {
+     "t": "slider",
+     "label": "Modo simples: comprimento do cabo / raio da esfera (m)",
+     "key": "arm_simple_len",
+     "min": 0.05,
+     "max": 1.0,
+     "def": 0.3,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Modo simples: cotovelo (centro da esfera) abaixo do ombro (m)",
+     "key": "arm_simple_elbow",
+     "min": 0.0,
+     "max": 0.7,
+     "def": 0.28,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Braço: ombro→cotovelo (m)",
+     "key": "arm_upper",
+     "min": 0.15,
+     "max": 0.5,
+     "def": 0.3,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Antebraço (m)",
+     "key": "arm_fore",
+     "min": 0.15,
+     "max": 0.5,
+     "def": 0.32,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Ombro lateral (m)",
+     "key": "arm_sh_x",
+     "min": 0.05,
+     "max": 0.3,
+     "def": 0.17,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Ombro abaixo (m)",
+     "key": "arm_sh_drop",
+     "min": 0.05,
+     "max": 0.4,
+     "def": 0.2,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Alcance geral",
+     "key": "arm_reach",
+     "min": 0.6,
+     "max": 1.6,
+     "def": 1.0,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Mão ↓: cotovelo à frente",
+     "key": "arm_bend_down",
+     "min": 0.0,
+     "max": 1.0,
+     "def": 0.55,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Mão ↑: cotovelo atrás",
+     "key": "arm_bend_up",
+     "min": 0.0,
+     "max": 1.0,
+     "def": 0.35,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Alcance extra (lados)",
+     "key": "arm_side_reach",
+     "min": 0.0,
+     "max": 2.0,
+     "def": 0.6,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Giro do tronco",
+     "key": "arm_torso",
+     "min": 0.0,
+     "max": 1.0,
+     "def": 0.25,
+     "step": 0.001,
+     "int": false
+    },
+    {
+     "t": "check",
+     "label": "Prévia manual (sem ESP32)",
+     "key": "ui_prev_manual",
+     "def": false
+    },
+    {
+     "t": "slider",
+     "label": "Prévia: pitch (°)",
+     "key": "ui_prev_pitch",
+     "min": -90.0,
+     "max": 90.0,
+     "def": 0.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "Prévia: yaw (°)",
+     "key": "ui_prev_yaw",
+     "min": -120.0,
+     "max": 120.0,
+     "def": 0.0,
+     "step": 0.1,
+     "int": false
+    },
+    {
+     "t": "button",
+     "label": "Restaurar Arm Model",
+     "cmd": "reset_arm"
+    }
+   ]
+  },
+  {
+   "name": "Coordenadas",
+   "widgets": [
+    {
+     "t": "slider",
+     "label": "CABEÇA posição X (direita +) (m)",
+     "key": "head_off_x",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CABEÇA posição Y (cima +) (m)",
+     "key": "head_off_y",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CABEÇA posição Z (trás +) (m)",
+     "key": "head_off_z",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CABEÇA rotação Inclinar (pitch °)",
+     "key": "head_rot_pitch",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CABEÇA rotação Girar (yaw °)",
+     "key": "head_rot_yaw",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CABEÇA rotação Rolar (roll °)",
+     "key": "head_rot_roll",
+     "min": -180.0,
+     "max": 180.0,
+     "def": 0.0,
+     "step": 1,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CONTROLE DIREITO X (direita +) (m)",
+     "key": "ctl_off_right_x",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CONTROLE DIREITO Y (cima +) (m)",
+     "key": "ctl_off_right_y",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CONTROLE DIREITO Z (trás +) (m)",
+     "key": "ctl_off_right_z",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CONTROLE ESQUERDO X (direita +) (m)",
+     "key": "ctl_off_left_x",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CONTROLE ESQUERDO Y (cima +) (m)",
+     "key": "ctl_off_left_y",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "slider",
+     "label": "CONTROLE ESQUERDO Z (trás +) (m)",
+     "key": "ctl_off_left_z",
+     "min": -3.0,
+     "max": 3.0,
+     "def": 0.0,
+     "step": 0.01,
+     "int": false
+    },
+    {
+     "t": "button",
+     "label": "Zerar todas as coordenadas",
+     "cmd": "reset_coord"
+    }
+   ]
+  },
+  {
+   "name": "Botões",
+   "widgets": [
+    {
+     "t": "group",
+     "title": "Controle DIREITO — o que cada botão faz"
+    },
+    {
+     "t": "cycle",
+     "label": "Grip",
+     "key": "bind_right_grip",
+     "keyFrame": "fbind_right_grip",
+     "optset": "kOptOut",
+     "def": 2,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Trigger",
+     "key": "bind_right_trigger",
+     "keyFrame": "fbind_right_trigger",
+     "optset": "kOptOut",
+     "def": 1,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão A",
+     "key": "bind_right_a",
+     "keyFrame": "fbind_right_a",
+     "optset": "kOptOut",
+     "def": 3,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão B",
+     "key": "bind_right_b",
+     "keyFrame": "fbind_right_b",
+     "optset": "kOptOut",
+     "def": 4,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão X",
+     "key": "bind_right_x",
+     "keyFrame": "fbind_right_x",
+     "optset": "kOptOut",
+     "def": 7,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão Y",
+     "key": "bind_right_y",
+     "keyFrame": "fbind_right_y",
+     "optset": "kOptOut",
+     "def": 8,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Start",
+     "key": "bind_right_start",
+     "keyFrame": "fbind_right_start",
+     "optset": "kOptOut",
+     "def": 5,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "L3",
+     "key": "bind_right_l3",
+     "keyFrame": "fbind_right_l3",
+     "optset": "kOptOut",
+     "def": 6,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "R2",
+     "key": "bind_right_r2",
+     "keyFrame": "fbind_right_r2",
+     "optset": "kOptOut",
+     "def": 1,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "group",
+     "title": "Controle ESQUERDO — o que cada botão faz"
+    },
+    {
+     "t": "cycle",
+     "label": "Grip",
+     "key": "bind_left_grip",
+     "keyFrame": "fbind_left_grip",
+     "optset": "kOptOut",
+     "def": 11,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Trigger",
+     "key": "bind_left_trigger",
+     "keyFrame": "fbind_left_trigger",
+     "optset": "kOptOut",
+     "def": 10,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão A",
+     "key": "bind_left_a",
+     "keyFrame": "fbind_left_a",
+     "optset": "kOptOut",
+     "def": 7,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão B",
+     "key": "bind_left_b",
+     "keyFrame": "fbind_left_b",
+     "optset": "kOptOut",
+     "def": 8,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão X",
+     "key": "bind_left_x",
+     "keyFrame": "fbind_left_x",
+     "optset": "kOptOut",
+     "def": 0,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Botão Y",
+     "key": "bind_left_y",
+     "keyFrame": "fbind_left_y",
+     "optset": "kOptOut",
+     "def": 0,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "Start",
+     "key": "bind_left_start",
+     "keyFrame": "fbind_left_start",
+     "optset": "kOptOut",
+     "def": 9,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "L3",
+     "key": "bind_left_l3",
+     "keyFrame": "fbind_left_l3",
+     "optset": "kOptOut",
+     "def": 12,
+     "min": 0,
+     "max": 44
+    },
+    {
+     "t": "cycle",
+     "label": "R2",
+     "key": "bind_left_r2",
+     "keyFrame": "fbind_left_r2",
+     "optset": "kOptOut",
+     "def": 10,
+     "min": 0,
+     "max": 44
+    }
+   ]
+  }
+ ],
+ "types": {
+  "move_speed": "f",
+  "rotate_speed": "f",
+  "fixed_height": "f",
+  "right_x": "f",
+  "right_y": "f",
+  "right_z": "f",
+  "left_x": "f",
+  "left_y": "f",
+  "left_z": "f",
+  "src_mode": "i",
+  "udp_port": "i",
+  "udp_port_left": "i",
+  "stick_cx": "i",
+  "stick_cy": "i",
+  "stick_cx_left": "i",
+  "stick_cy_left": "i",
+  "combo_recenter": "b",
+  "auto_center": "b",
+  "auto_zero_connect": "b",
+  "esp_timeout": "f",
+  "hmd_enabled": "b",
+  "hmd_win_x": "i",
+  "hmd_win_y": "i",
+  "hmd_win_w": "i",
+  "hmd_win_h": "i",
+  "head_port": "i",
+  "hmd_fov_h": "f",
+  "hmd_fov_v": "f",
+  "hmd_ipd": "f",
+  "hmd_sep": "f",
+  "hmd_hz": "f",
+  "hmd_render_scale": "f",
+  "hmd_k1": "f",
+  "hmd_k2": "f",
+  "user_height": "f",
+  "head_off_x": "f",
+  "head_off_y": "f",
+  "head_off_z": "f",
+  "head_rot_pitch": "f",
+  "head_rot_yaw": "f",
+  "head_rot_roll": "f",
+  "ctl_off_right_x": "f",
+  "ctl_off_right_y": "f",
+  "ctl_off_right_z": "f",
+  "ctl_off_left_x": "f",
+  "ctl_off_left_y": "f",
+  "ctl_off_left_z": "f",
+  "head_height_off": "f",
+  "head_timeout": "f",
+  "head_hold": "f",
+  "hand_port": "i",
+  "hand_timeout": "f",
+  "hands_pos_right": "b",
+  "hands_pos_left": "b",
+  "hands_pinch_right": "b",
+  "hands_pinch_left": "b",
+  "hands_aim_right": "b",
+  "hands_aim_left": "b",
+  "hmd_res_mode": "i",
+  "hmd_hz_mode": "i",
+  "track_mode": "i",
+  "bind_right_grip": "i",
+  "bind_right_trigger": "i",
+  "bind_right_a": "i",
+  "bind_right_b": "i",
+  "bind_right_x": "i",
+  "bind_right_y": "i",
+  "bind_right_start": "i",
+  "bind_right_l3": "i",
+  "bind_right_r2": "i",
+  "bind_left_grip": "i",
+  "bind_left_trigger": "i",
+  "bind_left_a": "i",
+  "bind_left_b": "i",
+  "bind_left_x": "i",
+  "bind_left_y": "i",
+  "bind_left_start": "i",
+  "bind_left_l3": "i",
+  "bind_left_r2": "i",
+  "fbind_right_grip": "i",
+  "fbind_right_trigger": "i",
+  "fbind_right_a": "i",
+  "fbind_right_b": "i",
+  "fbind_right_x": "i",
+  "fbind_right_y": "i",
+  "fbind_right_start": "i",
+  "fbind_right_l3": "i",
+  "fbind_right_r2": "i",
+  "fbind_left_grip": "i",
+  "fbind_left_trigger": "i",
+  "fbind_left_a": "i",
+  "fbind_left_b": "i",
+  "fbind_left_x": "i",
+  "fbind_left_y": "i",
+  "fbind_left_start": "i",
+  "fbind_left_l3": "i",
+  "fbind_left_r2": "i",
+  "ctl_assign": "i",
+  "ctl_swap": "b",
+  "rot_off_oculus_pitch": "f",
+  "rot_off_oculus_yaw": "f",
+  "rot_off_oculus_roll": "f",
+  "rot_off_vive_pitch": "f",
+  "rot_off_vive_yaw": "f",
+  "rot_off_vive_roll": "f",
+  "rot_off_index_pitch": "f",
+  "rot_off_index_yaw": "f",
+  "rot_off_index_roll": "f",
+  "rot_off_generic_pitch": "f",
+  "rot_off_generic_yaw": "f",
+  "rot_off_generic_roll": "f",
+  "rot_off_frame_pitch": "f",
+  "rot_off_frame_yaw": "f",
+  "rot_off_frame_roll": "f",
+  "ctl_profile": "i",
+  "arm_enabled": "b",
+  "arm_upper": "f",
+  "arm_fore": "f",
+  "arm_sh_x": "f",
+  "arm_sh_drop": "f",
+  "arm_bend_up": "f",
+  "arm_bend_down": "f",
+  "arm_side_reach": "f",
+  "arm_torso": "f",
+  "arm_reach": "f",
+  "ui_prev_manual": "b",
+  "ui_prev_pitch": "f",
+  "ui_prev_yaw": "f",
+  "esp_channel": "i",
+  "hide_lost": "b",
+  "hmd_force_fs": "b",
+  "hmd_monitor_mode": "b",
+  "hmd_anti_idle": "b",
+  "predict_ms": "f",
+  "head_smooth": "f",
+  "head_predict_ms": "f",
+  "world_yaw": "f",
+  "head_roll": "f",
+  "ctl_quat": "b",
+  "ctl_smooth": "f",
+  "arm_mode": "i",
+  "arm_simple_len": "f",
+  "pos6_src_x": "i",
+  "pos6_src_y": "i",
+  "pos6_src_z": "i",
+  "pos6_inv_x": "b",
+  "pos6_inv_y": "b",
+  "pos6_inv_z": "b",
+  "pos6_scale": "f",
+  "arm_simple_elbow": "f",
+  "hands_smooth": "f",
+  "head_flip_180": "b",
+  "hmd_make_primary": "b",
+  "key_move_mod": "b",
+  "key_depth_mod": "b",
+  "key_toggle": "b",
+  "keys_enabled": "b",
+  "follow_hmd": "b",
+  "follow_hmd_rot": "b",
+  "right_enabled": "b",
+  "left_enabled": "b",
+  "config_overlay": "b",
+  "web_autostart": "b",
+  "hmd_monitor": "b",
+  "ctl_ip_right": "b",
+  "ctl_ip_left": "b",
+  "Local\\\\StormVRLive": "b",
+  "ax_src_yaw": "i",
+  "ax_src_pitch": "i",
+  "ax_src_roll": "i",
+  "ax_en_yaw": "b",
+  "ax_en_pitch": "b",
+  "ax_en_roll": "b",
+  "ax_inv_yaw": "b",
+  "ax_inv_pitch": "b",
+  "ax_inv_roll": "b",
+  "ax_gain_yaw": "f",
+  "ax_gain_pitch": "f",
+  "ax_gain_roll": "f",
+  "ax_smooth_yaw": "f",
+  "ax_smooth_pitch": "f",
+  "ax_smooth_roll": "f",
+  "mpu_dz_roll": "f",
+  "mpu_dz_pitch": "f",
+  "mpu_dz_yaw": "f",
+  "stick_dz_x": "f",
+  "stick_dz_y": "f",
+  "stick_inv_x": "b",
+  "stick_inv_y": "b",
+  "stick_swap": "b",
+  "stick_gamma": "f",
+  "stick_edge": "f",
+  "stick_sens": "f",
+  "trig_ramp": "f",
+  "grip_ramp": "f",
+  "click_thr": "f",
+  "yaw_drift": "f",
+  "ax_src_yaw_left": "i",
+  "ax_src_pitch_left": "i",
+  "ax_src_roll_left": "i",
+  "ax_en_yaw_left": "b",
+  "ax_en_pitch_left": "b",
+  "ax_en_roll_left": "b",
+  "ax_inv_yaw_left": "b",
+  "ax_inv_pitch_left": "b",
+  "ax_inv_roll_left": "b",
+  "ax_gain_yaw_left": "f",
+  "ax_gain_pitch_left": "f",
+  "ax_gain_roll_left": "f",
+  "ax_smooth_yaw_left": "f",
+  "ax_smooth_pitch_left": "f",
+  "ax_smooth_roll_left": "f",
+  "mpu_dz_roll_left": "f",
+  "mpu_dz_pitch_left": "f",
+  "mpu_dz_yaw_left": "f",
+  "stick_dz_x_left": "f",
+  "stick_dz_y_left": "f",
+  "stick_inv_x_left": "b",
+  "stick_inv_y_left": "b",
+  "stick_swap_left": "b",
+  "stick_gamma_left": "f",
+  "stick_edge_left": "f",
+  "stick_sens_left": "f",
+  "trig_ramp_left": "f",
+  "grip_ramp_left": "f",
+  "click_thr_left": "f",
+  "yaw_drift_left": "f"
+ },
+ "defaults": {
+  "move_speed": 0.5,
+  "rotate_speed": 90.0,
+  "fixed_height": 1.3,
+  "right_x": 0.2,
+  "right_y": -0.3,
+  "right_z": -0.35,
+  "left_x": -0.2,
+  "left_y": -0.3,
+  "left_z": -0.35,
+  "src_mode": 0,
+  "udp_port": 0,
+  "udp_port_left": 0,
+  "stick_cx": 2048,
+  "stick_cy": 2048,
+  "stick_cx_left": 2048,
+  "stick_cy_left": 2048,
+  "combo_recenter": true,
+  "auto_center": true,
+  "auto_zero_connect": true,
+  "esp_timeout": 0.5,
+  "hmd_enabled": true,
+  "hmd_win_x": 0,
+  "hmd_win_y": 0,
+  "hmd_win_w": 1920,
+  "hmd_win_h": 1080,
+  "head_port": 0,
+  "hmd_fov_h": 90.0,
+  "hmd_fov_v": 90.0,
+  "hmd_ipd": 0.063,
+  "hmd_sep": 0.0,
+  "hmd_hz": 60.0,
+  "hmd_render_scale": 1.0,
+  "hmd_k1": 0.34,
+  "hmd_k2": 0.55,
+  "user_height": 1.65,
+  "head_off_x": 0.0,
+  "head_off_y": 0.0,
+  "head_off_z": 0.0,
+  "head_rot_pitch": 0.0,
+  "head_rot_yaw": 0.0,
+  "head_rot_roll": 0.0,
+  "ctl_off_right_x": 0.0,
+  "ctl_off_right_y": 0.0,
+  "ctl_off_right_z": 0.0,
+  "ctl_off_left_x": 0.0,
+  "ctl_off_left_y": 0.0,
+  "ctl_off_left_z": 0.0,
+  "head_height_off": 0.0,
+  "head_timeout": 0.5,
+  "head_hold": 5.0,
+  "hand_port": 0,
+  "hand_timeout": 0.4,
+  "hands_pos_right": true,
+  "hands_pos_left": true,
+  "hands_pinch_right": true,
+  "hands_pinch_left": true,
+  "hands_aim_right": true,
+  "hands_aim_left": true,
+  "hmd_res_mode": 0,
+  "hmd_hz_mode": 0,
+  "track_mode": 1,
+  "bind_right_grip": 2,
+  "bind_right_trigger": 1,
+  "bind_right_a": 3,
+  "bind_right_b": 4,
+  "bind_right_x": 7,
+  "bind_right_y": 8,
+  "bind_right_start": 5,
+  "bind_right_l3": 6,
+  "bind_right_r2": 1,
+  "bind_left_grip": 11,
+  "bind_left_trigger": 10,
+  "bind_left_a": 7,
+  "bind_left_b": 8,
+  "bind_left_x": 0,
+  "bind_left_y": 0,
+  "bind_left_start": 9,
+  "bind_left_l3": 12,
+  "bind_left_r2": 10,
+  "fbind_right_grip": 31,
+  "fbind_right_trigger": 30,
+  "fbind_right_a": 34,
+  "fbind_right_b": 35,
+  "fbind_right_x": 36,
+  "fbind_right_y": 37,
+  "fbind_right_start": 44,
+  "fbind_right_l3": 33,
+  "fbind_right_r2": 32,
+  "fbind_left_grip": 31,
+  "fbind_left_trigger": 30,
+  "fbind_left_a": 42,
+  "fbind_left_b": 41,
+  "fbind_left_x": 43,
+  "fbind_left_y": 40,
+  "fbind_left_start": 39,
+  "fbind_left_l3": 33,
+  "fbind_left_r2": 32,
+  "ctl_assign": 0,
+  "ctl_swap": false,
+  "rot_off_oculus_pitch": 0.0,
+  "rot_off_oculus_yaw": 0.0,
+  "rot_off_oculus_roll": 0.0,
+  "rot_off_vive_pitch": 0.0,
+  "rot_off_vive_yaw": 0.0,
+  "rot_off_vive_roll": 0.0,
+  "rot_off_index_pitch": 0.0,
+  "rot_off_index_yaw": 0.0,
+  "rot_off_index_roll": 0.0,
+  "rot_off_generic_pitch": 0.0,
+  "rot_off_generic_yaw": 0.0,
+  "rot_off_generic_roll": 0.0,
+  "rot_off_frame_pitch": 0.0,
+  "rot_off_frame_yaw": 0.0,
+  "rot_off_frame_roll": 0.0,
+  "ctl_profile": 0,
+  "arm_enabled": false,
+  "arm_upper": 0.3,
+  "arm_fore": 0.32,
+  "arm_sh_x": 0.17,
+  "arm_sh_drop": 0.2,
+  "arm_bend_up": 0.35,
+  "arm_bend_down": 0.55,
+  "arm_side_reach": 0.6,
+  "arm_torso": 0.25,
+  "arm_reach": 1.0,
+  "ui_prev_manual": false,
+  "ui_prev_pitch": 0.0,
+  "ui_prev_yaw": 0.0,
+  "esp_channel": 0,
+  "hide_lost": false,
+  "hmd_force_fs": true,
+  "hmd_monitor_mode": false,
+  "hmd_anti_idle": true,
+  "predict_ms": 15.0,
+  "head_smooth": 35.0,
+  "head_predict_ms": 20.0,
+  "world_yaw": 0.0,
+  "head_roll": 0.0,
+  "ctl_quat": true,
+  "ctl_smooth": 25.0,
+  "arm_mode": 0,
+  "arm_simple_len": 0.3,
+  "pos6_src_x": 1,
+  "pos6_src_y": 2,
+  "pos6_src_z": 0,
+  "pos6_inv_x": true,
+  "pos6_inv_y": false,
+  "pos6_inv_z": true,
+  "pos6_scale": 1.0,
+  "arm_simple_elbow": 0.28,
+  "hands_smooth": 45.0,
+  "head_flip_180": false,
+  "hmd_make_primary": true,
+  "key_move_mod": true,
+  "key_depth_mod": true,
+  "key_toggle": true,
+  "keys_enabled": true,
+  "follow_hmd": true,
+  "follow_hmd_rot": true,
+  "right_enabled": true,
+  "left_enabled": true,
+  "config_overlay": true,
+  "web_autostart": true,
+  "hmd_monitor": true,
+  "ctl_ip_right": true,
+  "ctl_ip_left": true,
+  "Local\\\\StormVRLive": true,
+  "ax_src_yaw": 2,
+  "ax_src_pitch": 1,
+  "ax_src_roll": 0,
+  "ax_en_yaw": true,
+  "ax_en_pitch": true,
+  "ax_en_roll": true,
+  "ax_inv_yaw": false,
+  "ax_inv_pitch": false,
+  "ax_inv_roll": false,
+  "ax_gain_yaw": 1.0,
+  "ax_gain_pitch": 1.0,
+  "ax_gain_roll": 1.0,
+  "ax_smooth_yaw": 25.0,
+  "ax_smooth_pitch": 25.0,
+  "ax_smooth_roll": 25.0,
+  "mpu_dz_roll": 0.3,
+  "mpu_dz_pitch": 0.3,
+  "mpu_dz_yaw": 1.0,
+  "stick_dz_x": 0.1,
+  "stick_dz_y": 0.1,
+  "stick_inv_x": false,
+  "stick_inv_y": true,
+  "stick_swap": false,
+  "stick_gamma": 1.0,
+  "stick_edge": 0.95,
+  "stick_sens": 1.0,
+  "trig_ramp": 12.0,
+  "grip_ramp": 12.0,
+  "click_thr": 0.9,
+  "yaw_drift": 0.0,
+  "ax_src_yaw_left": 2,
+  "ax_src_pitch_left": 1,
+  "ax_src_roll_left": 0,
+  "ax_en_yaw_left": true,
+  "ax_en_pitch_left": true,
+  "ax_en_roll_left": true,
+  "ax_inv_yaw_left": false,
+  "ax_inv_pitch_left": false,
+  "ax_inv_roll_left": false,
+  "ax_gain_yaw_left": 1.0,
+  "ax_gain_pitch_left": 1.0,
+  "ax_gain_roll_left": 1.0,
+  "ax_smooth_yaw_left": 25.0,
+  "ax_smooth_pitch_left": 25.0,
+  "ax_smooth_roll_left": 25.0,
+  "mpu_dz_roll_left": 0.3,
+  "mpu_dz_pitch_left": 0.3,
+  "mpu_dz_yaw_left": 1.0,
+  "stick_dz_x_left": 0.1,
+  "stick_dz_y_left": 0.1,
+  "stick_inv_x_left": false,
+  "stick_inv_y_left": true,
+  "stick_swap_left": false,
+  "stick_gamma_left": 1.0,
+  "stick_edge_left": 0.95,
+  "stick_sens_left": 1.0,
+  "trig_ramp_left": 12.0,
+  "grip_ramp_left": 12.0,
+  "click_thr_left": 0.9,
+  "yaw_drift_left": 0.0
+ }
+}

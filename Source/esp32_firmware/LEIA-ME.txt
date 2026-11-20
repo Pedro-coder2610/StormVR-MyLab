@@ -1,0 +1,62 @@
+FIRMWARE DO CONTROLE VR (ESP32 + MPU6050)  -  PlatformIO
+=========================================================
+LIGACAO (como voce informou)
+  GPIO13 Grip | GPIO14 Trigger | GPIO25 A | GPIO26 B | GPIO27 X | GPIO32 Y | GPIO33 Start/System
+  GPIO23 clique do analogico (L3) | GPIO4 (D4) botao extra "R2" (ligar ao GND; reprogramavel no driver)
+  Analogico: GPIO34 = VRx, GPIO35 = VRy (invertido no hardware), VCC = 3V3, GND = GND
+  MPU6050:   GPIO21 = SDA, GPIO22 = SCL, VCC = 3V3, GND = GND
+  Os botoes devem ligar o pino ao GND (o firmware usa pull-up interno; pressionado = nivel baixo).
+  Se os seus ligam ao 3V3, mude BTN_ACTIVE_LOW para 0 em include/config.h (e use pull-down externo).
+  GPIO34/35 sao so-entrada e sem pull-up interno: o analogico precisa estar ligado ao 3V3/GND como acima.
+
+GRAVAR
+  1. Instale o VS Code + extensao "PlatformIO IDE".
+  2. Abra a pasta esp32_touch (File > Open Folder).
+  3. Edite include/config.h: WIFI_SSID e WIFI_PASS (e PC_IP se quiser IP fixo em vez de broadcast).
+  4. Conecte o ESP32 por USB e clique em Upload (seta) - ou no terminal:  pio run -t upload
+  5. Monitor serial (115200): pio device monitor  -> mostra Wi-Fi, bias do giroscopio e angulos.
+
+USO
+  - Ao ligar, deixe o controle PARADO ~1,5 s (calibracao do giroscopio). O LED da placa pisca enquanto
+    conecta ao Wi-Fi e fica aceso quando conectado.
+  - O PC (driver) escuta na porta UDP 5555; libere no firewall (comando no LEIA-ME do driver).
+  - Se o MPU estiver montado de outro jeito (eixos trocados), ajuste MPU_MAP_X/Y/Z em config.h ou use
+    o seletor de eixos no menu do SteamVR (aba Eixos).
+  - Pacote UDP: 42 bytes, 100 Hz (SEND_HZ). O formato esta em include/protocol.h (igual ao do driver).
+
+BLUETOOTH LE (novo) - controle 3DoF para o celular (modo Android / sala 3D)
+  - O ESP32 anuncia "StormVR-Ctl" (servico 7d0e0001-...). O app StormVR do celular conecta sozinho e recebe,
+    por notificacao GATT de 14 bytes (cabe no MTU padrao), botoes + analogico + roll/pitch/yaw a ate 100 Hz.
+  - Wi-Fi e Bluetooth coexistem. CANAL DE SAIDA (menu do SteamVR > aba Controles > "Canal do ESP32", ou comando do celular):
+      Auto    : Bluetooth se houver celular conectado, senao Wi-Fi
+      SteamVR : so Wi-Fi/UDP (driver do PC)
+      Android : Bluetooth quando conectado; sem Bluetooth, cai para o Wi-Fi (o SteamVR continua funcionando)
+  - include/config.h: BLE_ENABLED, HAND_LEFT_DEFAULT (mao na PRIMEIRA gravacao).
+  - platformio.ini: biblioteca NimBLE-Arduino (baixada sozinha) e particao huge_app (Wi-Fi + BLE precisam de mais flash).
+  - Deixe PC_IP vazio para o Wi-Fi tambem chegar ao celular por broadcast.
+
+DOIS CONTROLES (direita + esquerda) COM O MESMO FIRMWARE (NOVO)
+  - A mao de cada ESP32 fica gravada na memoria dele (NVS). Para trocar SEM regravar:
+      a) segure GRIP + TRIGGER ao ligar por ~1 s: o LED pisca 1x = DIREITA ou 2x = ESQUERDA (e grava);
+      b) ou no menu do SteamVR > Controles > "Virar mao do controle ..." (comando UDP) ou pelo app do celular (comando 3).
+  - Anuncia como "StormVR-Ctl-R" / "StormVR-Ctl-L"; o app do celular conecta os DOIS por Bluetooth, um por mao.
+
+SE O ESP32 "NAO INICIA" - DIAGNOSTICO (monitor serial 115200: pio device monitor)
+  Ao ligar a serial mostra o motivo do ultimo reset, cada etapa (mao, MPU, Bluetooth, Wi-Fi) e o heap livre.
+  - "QUEDA DE TENSAO (brownout)" ou reinicios em loop: fonte/cabo USB fraco (Wi-Fi + Bluetooth puxam picos de corrente).
+    Troque o cabo/porta ou ligue uma fonte 5 V de 1 A; capacitor de 100-470 uF entre 3V3 e GND ajuda.
+  - ERRO "Stack smashing protect failure" logo depois de "[ble] iniciando...": era a biblioteca NimBLE. Agora o firmware usa o
+    Bluetooth NATIVO do core Arduino-ESP32 (sem biblioteca externa). Alem disso, se a inicializacao do Bluetooth travar o
+    ESP32, ele grava isso na memoria e nos boots seguintes sobe SO COM Wi-Fi (o SteamVR continua funcionando) e avisa na serial.
+    Para tentar o Bluetooth de novo: segure A + B ao ligar, ou grave um firmware novo (a trava e limpa sozinha).
+  - O firmware agora entra em MODO SEGURO (sem Bluetooth) se reiniciar por erro 2 vezes seguidas; avisa na serial e o LED
+    pisca devagar. Tirar a energia e ligar de novo volta ao normal.
+  - "[mpu] NAO ENCONTRADO": confira SDA=21 SCL=22 3V3 GND. Antes, sem MPU a calibracao ficava eterna e o driver esperava;
+    agora ela e cancelada e os botoes funcionam (a orientacao fica parada).
+  - Mudancas desta versao: Wi-Fi em economia leve quando o Bluetooth esta ligado (coexistencia), timeout no I2C,
+    delay(1) no loop (watchdog), versao do NimBLE fixada em 1.4.x e comentario removido da linha de particao do platformio.ini.
+
+--- Etapa 30 ---
+* Eixos: MPU_MAP_X/Z agora -1/-3 (X e Z invertidos, corrige roll/yaw ao contrario). Regrave o ESP32 depois de atualizar.
+* Bluetooth: pacote de 18 bytes com carimbo de tempo (millis, 16 bits). SEND_HZ 100 / BLE_DECIM 2.
+* Wi-Fi/IP padrao no config.h: rede "Rb_lucas", PC_IP 192.168.100.108 (troque PC_IP pelo IP do Droid Deck se usar o driver Linux).

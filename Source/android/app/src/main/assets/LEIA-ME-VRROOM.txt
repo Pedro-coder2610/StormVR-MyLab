@@ -1,0 +1,5 @@
+MODELO DE MAOS (opcional / offline)
+O app baixa sozinho o modelo "hand_landmarker.task" na primeira vez que o rastreamento de maos e ligado.
+Se o celular estiver sem internet, baixe o arquivo neste endereco e coloque nesta pasta (app/src/main/assets/):
+https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+Depois recompile: o app passa a usar o arquivo embutido.

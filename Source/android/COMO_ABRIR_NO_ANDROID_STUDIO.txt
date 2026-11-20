@@ -1,0 +1,8 @@
+COMO ABRIR NO ANDROID STUDIO (evita o erro "Compilation is not supported for the following modules")
+
+1. Descompacte o zip e abra SÓ a pasta  android  (File > Open > ...\StormVR\android). NÃO abra a pasta StormVR inteira:
+   dentro dela há o driver (C++), o firmware do ESP32 e a versão Linux, que não são projetos Gradle — o Studio os trata como
+   "módulos Java" e mostra aquele erro.
+2. Se o erro já apareceu: feche o projeto, apague a pasta oculta  .idea  (e os arquivos *.iml) que o Studio criou, e abra de novo a pasta  android.
+   (Ou aceite "Remove unsupported modules and re-sync" e depois File > Sync Project with Gradle Files.)
+3. Os .jar da S Pen já estão em  android/app/libs/ . Não precisa mexer em mais nada.

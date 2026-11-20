@@ -1,0 +1,152 @@
+STORMVR (driver PC) - headset 3DoF + par de Oculus Touch no SteamVR
+===================================================================
+  Controle DIREITO  = seu ESP32 + MPU6050 por Wi-Fi UDP (orientacao, botoes e analogico)
+                      (se o ESP32 nao estiver conectado, cai no teclado - modo "Auto")
+  Controle ESQUERDO = teclado (e, opcionalmente, os botoes X/Y do ESP32)
+
+NOVO NA ETAPA 1: o driver agora cria o HEADSET (modo estendido) alimentado pela pose do celular (UDP 5556).
+  Veja ..\ARQUITETURA.md (roteiro de validacao) e tools\pose_sim.py (simulador). hmd_enabled=false desliga o headset.
+  RENOMEADO: apague SteamVR\drivers\keyboardtouch antes de instalar (evita controles duplicados).
+
+COMPILAR (Visual Studio 2019/2022 + CMake, x64)
+  build.bat                       (usa Z:/Ferramentas/openvr-2.15.6)
+  build.bat "outro/caminho/SDK"   (se o SDK estiver em outro lugar)
+Gera tudo dentro de  package\stormvr\bin\win64\ :
+  driver_stormvr.dll, stormvr_config.exe, openvr_api.dll, icon.png
+
+INSTALAR (feche o SteamVR antes)
+  install.bat   ou copie a pasta package\stormvr para
+  ...\SteamVR\drivers\stormvr
+Se o driver esp32vr_touch (ou outro que crie Oculus Touch) estiver ativo, remova-o durante o teste.
+
+FIREWALL (uma vez, prompt de comando como administrador)
+  netsh advfirewall firewall add rule name="StormVR UDP" dir=in action=allow protocol=UDP localport=5555,5556
+  (sem isso o Windows pode bloquear os pacotes do ESP32 e o menu fica em "Aguardando o ESP32")
+
+ESP32: veja ..\esp32_touch\LEIA-ME.txt (PlatformIO). O ESP32 e o PC precisam estar na mesma rede.
+
+DOIS CONTROLES AO MESMO TEMPO (NOVO) - mao direita e mao esquerda
+  - Ate 2 controles reais, em QUALQUER combinacao: ESP32 + celular, 2 celulares, 2 ESP32. Cada controle e uma fonte
+    (IP) na porta UDP 5555; o driver decide a mao de cada um (aba Controles):
+      Automatico        : cada controle diz a sua mao (ESP32: mao gravada nele; celular: mao escolhida no app). Se dois
+                          pedirem a MESMA mao, o segundo vai para a mao livre.
+      Ordem de conexao  : 1o que conectar = direita, 2o = esquerda.
+      IP fixo por mao   : conecte cada controle e use "Fixar IP atual" na mao correta.
+    "Trocar maos" inverte tudo. "Virar mao do controle DIREITO/ESQUERDO" manda o ESP32 gravar a mao nova (sem regravar firmware).
+  - Mapeamento de botoes e UM POR MAO (aba Botoes, botao "Editando: controle da mao ..."). Mais de um botao fisico
+    (do mesmo controle ou de controles diferentes) pode assumir a MESMA funcao: elas se somam, sem clique duplicado.
+  - TUDO do controle e separado por mao (abas Eixos, Analogico, Perfil: botao "Mostrando: controle DIREITO/ESQUERDO"): eixos (origem,
+    ativo, inverter, ganho, suavizacao, zona morta), deriva do yaw, analogico (zona morta, sensibilidade, curva, borda, inverter, trocar
+    X/Y, centro), rampas e limiar de clique. Inverter um eixo num controle NAO inverte no outro. "Copiar ... do OUTRO controle" ajuda.
+    A mao direita mantem suas chaves antigas; a esquerda usa as mesmas com sufixo _left.
+  - A mao sem controle real continua com o teclado.
+
+COMO FUNCIONA CADA CONTROLE (ESP32 ou celular)
+  - Botoes: Grip, Trigger, A, B, X, Y, Start/System, clique do analogico (L3) e R2 (GPIO4 / D4 do ESP32; botao "R2" no
+    celular). O analogico vira o joystick. R2 vem mapeado como Trigger (padrao) e e reprogramavel na aba Botoes.
+  - Padrao da mao DIREITA = ligacao original (X/Y do ESP32 viram X/Y do controle esquerdo virtual). Padrao da mao ESQUERDA:
+    Grip, Trigger, A->X, B->Y, Start->Menu, L3->clique, R2->Trigger esquerdo. Configuracoes antigas "map_*" nao sao mais lidas.
+  - Orientacao: o ESP32 calcula roll/pitch/yaw (giro em X/Y/Z do MPU) e o driver aplica:
+        recentrar -> zona morta por eixo do MPU -> mapeamento -> inverter/ganho -> suavizacao
+  - Posicao: o MPU so mede rotacao (3DoF). A posicao do controle segue o headset + deslocamentos
+    (aba Geral ou Shift/Ctrl + setas do teclado), como antes.
+  - O teclado continua funcionando junto (somando botoes); girar com as setas so funciona se o ESP32 estiver desconectado.
+
+MENU (dashboard do SteamVR > "StormVR") - cada controle altera o driver em tempo real; as alteracoes ficam salvas
+no steamvr.vrsettings (sobrevivem a reiniciar o SteamVR). Marcado [reiniciar] = so vale ao reiniciar o SteamVR.
+  Geral      teclado/controles, velocidades, posicoes, rampa do Trigger e do Grip (separadas), Restaurar tudo,
+             Salvar/Carregar 3 slots (Documentos\StormVR\slotN.cfg).
+  ESP32      status Wi-Fi/UDP (IP, pacotes/s, ms desde o ultimo pacote, perdidos), fonte do controle direito
+             (Auto/So ESP32/So teclado), destino dos botoes X e Y (mesma tabela da aba Botoes), recentrar yaw,
+             zerar, calibrar giroscopio, botoes e eixos ao vivo.
+  Headset    monitor de saida (lista clicavel) [reiniciar], resolucao, taxa, rastreamento (6DoF indisponivel),
+             FOV, IPD, distorcao k1/k2, escala, altura, recentrar cabeca, estado da pose do celular.
+  Eixos      por eixo de saida (Yaw/Pitch/Roll): origem no MPU ou Nenhum, Ativo, Inverter, Ganho, Suavizacao;
+             zona morta por eixo do MPU; bruto -> processado -> saida ao vivo; recentrar/zerar/calibrar.
+  Analogico  zona morta X e Y, sensibilidade, curva, borda, inverter X/Y (Y invertido por padrao), trocar X<->Y,
+             calibrar centro, previa ao vivo (bruto e saida).
+  Botoes     cada botao fisico (Grip, Trigger, A, B, X, Y, Start, L3) -> entrada do controle virtual ou Nenhum;
+             clique numa entrada do desenho e aperte um botao do ESP32 para capturar; conflitos sinalizados;
+             sempre existe um botao no Trigger (o menu recusa remover o ultimo); restaurar padrao.
+  Perfis     Oculus Touch (padrao) / HTC Vive / Valve Index (exp.) / Generico StormVR (exp.) [reiniciar].
+  Arm Model  estimativa de braco (ombro fixo na cabeca, cotovelo acompanha o pitch). NAO e rastreamento real.
+  Diagnostico estado de conexao/controle/calibracao do MPU6050, valores dos sensores e das entradas processadas,
+             registro dos ultimos eventos, botao "Reiniciar conexao UDP" (sem reiniciar o SteamVR).
+  Teclas     remapear teclas (como antes).
+
+NOVO (erro -202 "compositor nao esta em tela cheia")
+  Causa tipica: a janela do headset nao cobria EXATAMENTE um monitor (ex.: 1920x1080 pedidos num monitor 1366x768).
+  Agora a janela e SEMPRE o retangulo inteiro de um monitor real: o escolhido na aba Headset ou, se nenhum, um monitor
+  nao principal (ex.: o virtual) e, se so houver um, o principal. Alem disso um "guardiao" (aba Headset > Forcar tela
+  cheia) recoloca a janela do vrcompositor.exe se ela sair do retangulo. "Resolucao do monitor" muda o modo de video
+  do monitor escolhido (nunca do principal). Se ainda aparecer -202, veja o Diagnostico e o vrserver.txt ("stormvr").
+  DICA: usar o monitor principal como saida cobre sua area de trabalho; prefira um monitor virtual (IddCx) + Sunshine.
+
+CELULAR COMO CONTROLE NO PC (UDP)
+  No app StormVR: "Modo controle" > IP do PC > Iniciar. O celular envia o mesmo pacote do ESP32 (porta UDP 5555), entao o
+  driver o trata como o controle 3DoF (orientacao + layout de botoes + botoes de volume mapeaveis). Libere o UDP 5555 no firewall.
+  O driver TRAVA na primeira origem ativa (ESP32 OU celular) e ignora a outra ate ficar 0,5 s sem pacotes; a troca aparece
+  no Diagnostico. Aba ESP32: "O controle comanda a mao" = Pelo controle usa a mao escolhida no app; "Canal do ESP32" escolhe
+  Wi-Fi/Bluetooth. Usar ESP32 E celular ao mesmo tempo como dois controles no PC ainda nao e suportado.
+
+ESCOLHA DO MONITOR DO HEADSET (aba Headset) - agora so 2 passos
+  1) clique no monitor (use "Identificar" para ver o numero grande em cada tela)   2) reinicie o SteamVR.
+  O driver torna esse monitor o PRINCIPAL do Windows enquanto o SteamVR estiver aberto (a barra de tarefas e as janelas
+  vao para ele) e restaura o layout original ao fechar. O layout fica salvo em %LOCALAPPDATA%\StormVR\display_restore.txt;
+  se o SteamVR fechar de forma abrupta, e restaurado na proxima abertura ou pelo botao "Restaurar principal".
+  Para nao mexer no principal, desmarque "Tornar principal ao abrir o SteamVR". Plano B manual: Configuracoes do Windows >
+  Sistema > Tela > selecione o monitor > "Tornar este meu monitor principal".
+
+BOTOES: acoes e varias teclas na mesma funcao
+  Na aba Botoes qualquer botao fisico pode acionar uma ACAO: Recentrar controle, Recentrar cabeca, Recentrar tudo,
+  Zerar yaw/pitch/roll, Calibrar giroscopio, Ligar/desligar Arm Model, Embreagem (segurar = congela a orientacao;
+  reposicione a mao e solte, sem salto). Varias teclas podem ter a mesma funcao.
+
+OUTRAS OPCOES NOVAS
+  Como as maos sao atribuidas aos controles - aba Controles; compensacao da deriva do yaw (graus/min); esconder o controle
+  se o ESP32 cair; limiar de clique do Trigger/Grip (aba Perfis); Arm Model v2 (cotovelo a frente com a mao para baixo,
+  recuo com a mao para cima, alcance extra para os lados, giro do tronco, alcance geral) com previa lateral/de cima.
+
+PERFIS - o que e real e quais as limitacoes
+  Oculus Touch  validado. E o caminho recomendado tambem para o Steam Frame (ver abaixo).
+  HTC Vive      usa o perfil {htc} do SteamVR: trigger, grip (so clique), menu de aplicativo, system, trackpad.
+                O analogico vira trackpad. Nao ha botao B/Y; A/X vira Menu de aplicativo.
+  Valve Index   EXPERIMENTAL: a, b, system, trigger, grip, thumbstick. SEM esqueleto de dedos/forca.
+  Generico      EXPERIMENTAL: perfil proprio (resources\input\stormvr_generic_profile.json) com todas as entradas
+                fisicas 1:1 (inclui X e Y no controle direito). Tipo novo = os jogos nao trazem binding; e preciso
+                criar um na tela de Bindings do SteamVR. A estrutura do JSON nao foi validada contra o SteamVR.
+  Steam Frame   NAO implementado como perfil proprio: o controle nativo usa controller_type "frame_controller" com
+                esqueleto de dedos, e nao ha perfil publico para um driver imitar. A documentacao da Valve diz que,
+                sem binding do Frame, o SteamVR remapeia o binding do Oculus Touch - o perfil Oculus ja cobre isso.
+
+PRIMEIRO AJUSTE (5 minutos)
+  1. ESP32/celular parado: aba Controles deve mostrar "conectado" na mao certa. Aperte cada botao (inclui R2) e veja acender.
+  2. Aba Analogico: solte o analogico e "Calibrar centro". Empurre para cima: o ponto azul deve subir.
+  3. Aba Eixos: mexa o controle e veja qual barra se move; troque a origem ou marque Inverter.
+  4. Se o yaw "anda" (MPU6050 sem magnetometro): Recentrar yaw (ou segure L3 + Start; recentra tambem a cabeca).
+
+SE ALGO NAO FUNCIONAR
+  - Cliques na aba caindo no lugar errado (espelhados na vertical):
+    em config\config_app.cpp troque  kFlipY = true  para false e recompile.
+  - Sem modelo 3D / perfil de entrada: o driver usa {oculus}/input/touch_profile.json e o
+    modelo oculus_cv1_controller_* da pasta drivers\oculus do proprio SteamVR.
+  - Logs do driver: SteamVR\logs\vrserver.txt  (procure por "stormvr").
+
+DISTANCIA ENTRE OS OLHOS (aba Headset)
+  "Distancia entre os olhos / IPD (m)": profundidade 3D (hmd_ipd). "Distancia entre as 2 imagens (%)" (hmd_sep, novo): afasta ou
+  aproxima os CENTROS das duas imagens na tela do celular (ajuste fino da lente, igual ao do app Android). Reinicie o SteamVR.
+
+MAOS RASTREADAS PELO CELULAR (Sala VR > Modo PC)  - aba Controles
+  O app manda posicao das maos e pinca (UDP 5557; libere no firewall). Opcoes POR MAO no driver: "Posicao da mao", "Pinca = trigger" e
+  "Direcao da mao" (so vale numa mao sem controle real). A posicao e relativa ao headset e girada pelo yaw da cabeca; a pinca soma (OU)
+  com os botoes. No app, posicao e pinca tambem sao ligaveis separadamente.
+
+=== MODO GAMEPAD (jogos de tela plana: Cuphead etc.) ===
+1) Instale o driver ViGEmBus (projeto ViGEm, nefarius) e reinicie o PC.
+2) Copie o ViGEmClient.dll (64 bits) para a pasta package\StormVR_Gamepad (ao lado do stormvr_gamepad.exe gerado pelo build.bat).
+3) FECHE o SteamVR (as portas UDP 5555/5558 sao as mesmas do driver) e abra o stormvr_gamepad.exe.
+4) Ligue o(s) controle(s) (ESP32 ou celular em "Modo controle" apontando para o IP do PC). Um controle: layout Xbox completo.
+   Dois controles: esquerdo = analogico esquerdo/LT/LB/D-pad, direito = analogico direito/RT/RB/A B X Y.
+
+=== MODO GAMEPAD NO MENU DO STEAMVR: REMOVIDO (etapa 33) ===
+A opcao "Modo gamepad" saiu do driver, do menu do SteamVR e do painel web. Para jogos de tela plana use o programa separado stormvr_gamepad.exe (secao acima).

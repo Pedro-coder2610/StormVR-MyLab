@@ -1,0 +1,24 @@
+--- a/tools/linuxfs/overlay/usr/local/bin/droiddeck-steamvr
++++ b/tools/linuxfs/overlay/usr/local/bin/droiddeck-steamvr
+@@ -4,6 +4,7 @@
+ steamvr=${STEAMVR:-/opt/steamvr}
+ vrdir=${DROIDDECK_VR_DIR:-/usr/local/lib/droiddeck-vr}
+ driver=$vrdir/droiddeck
++stormvr=${STORMVR_DRIVER:-$HOME/.local/share/stormvr/driver}
+ layer=$vrdir/layer
+ logs=$HOME/.local/share/Steam/logs
+ state=${XDG_RUNTIME_DIR:-/tmp}/droiddeck-steamvr
+@@ -175,10 +176,12 @@
+ except OSError as error:
+     print("Could not remove SteamVR's crash marker: " + str(error), file=sys.stderr)
+ PY
++    stormvr_entry=
++    [ -f "$stormvr/driver.vrdrivermanifest" ] && stormvr_entry=", \"$stormvr\""
+     cat > "$HOME/.config/openvr/openvrpaths.vrpath" <<JSON
+ {
+   "config": ["$HOME/.local/share/Steam/config"],
+-  "external_drivers": ["$driver"],
++  "external_drivers": ["$driver"$stormvr_entry],
+   "jsonid": "vrpathreg",
+   "log": ["$logs"],
+   "runtime": ["$steamvr"],

@@ -819,6 +819,7 @@ class VrRoomActivity : Activity() {
                 mediaPlaybackRequiresUserGesture = false
                 useWideViewPort = false
                 loadWithOverviewMode = false
+                textZoom = 130 // texto 30% maior para facilitar a leitura dentro do visor VR
                 userAgentString = DESKTOP_UA
                 setSupportZoom(true)                  // pinça com dois controles/dedos dá zoom na página
                 builtInZoomControls = true
@@ -1750,13 +1751,15 @@ class VrRoomActivity : Activity() {
             val v = ((g.cz + g.h / 2f) - tz) / g.h
             val inside = u in 0f..1f && v in 0f..1f
             val idx = if (inside) ui.keyAt(u, v) else -1
-            if (inside && idx >= 0 && front > -0.05f && front < 0.12f) ui.kbHov[i] = idx   // realça a tecla sob o dedo
+            // Faixa de proximidade mais generosa: a câmera do celular tem alguma variação de profundidade.
+            if (inside && idx >= 0 && front > -0.10f && front < 0.18f) ui.kbHov[i] = idx
             if (!pokeDown[i]) {
-                if (idx >= 0 && front < 0.015f && front > -0.06f && pokeFront[i] > 0.03f) {
+                // O dedo precisa vir de fora e atravessar a zona de toque; a margem evita repetição por tremor.
+                if (idx >= 0 && front < 0.035f && front > -0.12f && pokeFront[i] > 0.035f) {
                     pokeDown[i] = true
                     pressKey(idx)
                 }
-            } else if (front > 0.045f || !inside) {
+            } else if (front > 0.085f || !inside) {
                 pokeDown[i] = false
             }
             pokeFront[i] = front

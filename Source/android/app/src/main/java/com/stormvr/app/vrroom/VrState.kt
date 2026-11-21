@@ -349,8 +349,8 @@ class VrState {
         var kx: Float; var kyy: Float; var kz: Float; var kw: Float
         var px = 0f; var py = 0f; var pz = 0f                                    // pivô da órbita
         if (handsOn && handState >= 2) {
-            // com as mãos ligadas o teclado fica ao alcance (a ~60 cm), para digitar tocando ou pinçando as teclas
-            kx = headX; kyy = headY + 0.62f; kz = headZ - 0.12f; kw = 0.70f
+            // Teclado maior, um pouco mais afastado e mais baixo para facilitar alcançar as teclas.
+            kx = headX; kyy = headY + 0.72f; kz = headZ - 0.20f; kw = 0.95f
             px = headX; py = headY; pz = headZ
         } else { kx = wx; kyy = ky; kz = -0.85f; kw = KB_METERS }
         val d = (Math.PI / 180.0).toFloat()

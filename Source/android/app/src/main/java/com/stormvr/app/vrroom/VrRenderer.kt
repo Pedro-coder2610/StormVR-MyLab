@@ -1541,13 +1541,13 @@ class VrRenderer(
             box(sx, 3.6f, floorZ + 2.1f, 0.38f, 0.38f, 0.38f, cLampHead, 8f)
         }
 
-        // Mesa de xadrez no fundo da sala, atrás do usuário, como cenário de teste de gestos.
+        // Mesa de xadrez à frente do usuário e perto o suficiente para alcançar sem locomoção virtual.
         drawChessTable()
     }
 
     /** Tabuleiro e 32 peças leves. O tabuleiro usa um único plano com padrão no shader para poupar draw calls. */
     private fun drawChessTable() {
-        val cy = -2.32f
+        val cy = 0.85f
         val topZ = floorZ + 0.99f
         val boardSize = 1.16f
         val cell = boardSize / 8f

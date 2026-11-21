@@ -304,7 +304,7 @@ class VrUi {
         val py = v * VrState.KB_H
         for (i in keys.indices) {
             val r = keys[i].r
-            if (px >= r.left - 4 && px <= r.right + 4 && py >= r.top - 4 && py <= r.bottom + 4) return i
+            if (px >= r.left - 10 && px <= r.right + 10 && py >= r.top - 10 && py <= r.bottom + 10) return i
         }
         return -1
     }
@@ -377,7 +377,7 @@ class VrUi {
                 }
                 val label = keyLabel(k)
                 paint.color = if (kbFlash == i) Color.BLACK else Color.WHITE
-                paint.textSize = if (k.type == K_FN) 26f else if (label.length > 1) 32f else 46f
+                paint.textSize = if (k.type == K_FN) 30f else if (label.length > 1) 39f else 54f
                 paint.textAlign = Paint.Align.CENTER
                 c.drawText(label, k.r.centerX(), textY(k.r), paint)
             }

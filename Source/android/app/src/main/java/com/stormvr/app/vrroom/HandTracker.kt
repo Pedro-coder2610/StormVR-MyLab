@@ -16,6 +16,7 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import kotlin.math.PI
+import kotlin.math.acos
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -41,6 +42,11 @@ class OneEuro(private val n: Int, var minCutoff: Float, private val beta: Float,
     private var init = false
 
     fun reset() { init = false }
+
+    /** Mantém o estado interno alinhado quando uma correção anatômica ajusta os pontos filtrados. */
+    fun sync(x: FloatArray) {
+        System.arraycopy(x, 0, xPrev, 0, n)
+    }
 
     private fun alpha(cutoff: Float, dt: Float): Float {
         val tau = 1f / (2f * PI.toFloat() * cutoff)
@@ -92,9 +98,14 @@ class HandTracker(
 
         // pinça: relação (distância polegar-indicador) / (tamanho da mão)
         // Um valor um pouco maior facilita a pinça; a faixa de soltura mantém histerese para não piscar.
-        private const val PINCH_ON = 0.46f
-        private const val PINCH_REL_MIN = 0.54f
-        private const val PINCH_REL_MAX = 0.68f
+        private const val PINCH_ON = 0.48f
+        private const val PINCH_REL_MIN = 0.56f
+        private const val PINCH_REL_MAX = 0.70f
+
+        // Limita saltos repentinos do pulso sem deformar a mão: todos os 21 pontos recebem o mesmo deslocamento.
+        private const val MAX_WRIST_SPEED_MPS = 3.0f
+        private const val MIN_WRIST_STEP_METERS = 0.025f
+        private const val MAX_WRIST_STEP_METERS = 0.18f
     }
 
     /** Dados de um quadro da câmera (copiados na GL thread). Reaproveitado: só há 1 job por vez. */
@@ -191,10 +202,12 @@ class HandTracker(
 
     // estado por mão (0 = esquerda, 1 = direita)
     // beta menor = o filtro não abandona a suavização tão depressa quando a mão acelera.
-    private val filters = Array(2) { OneEuro(63, 2.0f, 10f, 1.0f) }
+    // Mais suavização em movimento: reduz ruído de landmarks sem congelar a mão.
+    private val filters = Array(2) { OneEuro(63, 1.8f, 6.5f, 1.0f) }
     private val priors = Array(2) { HandPrior() }        // anatomia: aprende ossos só com a mão bem aberta
     private val active = BooleanArray(2)
     private val pinchState = BooleanArray(2)
+    private val pinchOnCount = IntArray(2)
     private val prevPts = Array(2) { FloatArray(63) }
     private val prevT = FloatArray(2)
     private val vel = Array(2) { FloatArray(3) }
@@ -263,7 +276,12 @@ class HandTracker(
             // modo "controle com bolinhas": não depende do modelo de mãos (se ele não carregou, segue só com o detector de bolinhas)
             if (lm != null) landmarker = lm else builtHands = wantHands
             stage = "pronto"
-            for (h in 0..1) { filters[h].reset(); active[h] = false }
+            for (h in 0..1) {
+                filters[h].reset(); active[h] = false; conf[h] = 0
+                pinchState[h] = false; pinchOnCount[h] = 0; offCount[h] = 0
+                gestureState[h] = HandGesture.NONE; gestureCandidate[h] = HandGesture.NONE; gestureFrames[h] = 0
+                lastSeenNs[h] = 0L; prevT[h] = 0f; vel[h].fill(0f)
+            }
             ready = true
             busy = false
             st.handState = 2
@@ -398,8 +416,9 @@ class HandTracker(
         switchTo = null
         for (h in 0..1) {
             filters[h].reset(); active[h] = false; conf[h] = 0; pinchState[h] = false
+            pinchOnCount[h] = 0; offCount[h] = 0; ratioOut[h] = 1f; closingS[h] = false
             gestureState[h] = HandGesture.NONE; gestureCandidate[h] = HandGesture.NONE; gestureFrames[h] = 0
-            lastSeenNs[h] = 0L
+            lastSeenNs[h] = 0L; prevT[h] = 0f; vel[h].fill(0f)
         }
         benchSum = 0
         benchN = 0
@@ -515,6 +534,21 @@ class HandTracker(
                       b: com.google.mediapipe.tasks.components.containers.Landmark): Float {
         val dx = a.x() - b.x(); val dy = a.y() - b.y(); val dz = a.z() - b.z()
         return sqrt(dx * dx + dy * dy + dz * dz)
+    }
+
+    /** Ângulo de uma articulação em graus; usa landmarks 3D do MediaPipe, menos dependentes da rotação da câmera. */
+    private fun jointAngleDeg(
+        a: com.google.mediapipe.tasks.components.containers.Landmark,
+        b: com.google.mediapipe.tasks.components.containers.Landmark,
+        c: com.google.mediapipe.tasks.components.containers.Landmark
+    ): Float {
+        val ax = a.x() - b.x(); val ay = a.y() - b.y(); val az = a.z() - b.z()
+        val cx = c.x() - b.x(); val cy = c.y() - b.y(); val cz = c.z() - b.z()
+        val an = sqrt(ax * ax + ay * ay + az * az)
+        val cn = sqrt(cx * cx + cy * cy + cz * cz)
+        if (an < 1e-6f || cn < 1e-6f) return 0f
+        val cosine = ((ax * cx + ay * cy + az * cz) / (an * cn)).coerceIn(-1f, 1f)
+        return (acos(cosine) * (180f / PI.toFloat()))
     }
 
     /** Versão "leve": metade da resolução (1 amostra a cada 2x2 pixels) — conversão ~4x mais barata. */
@@ -751,20 +785,23 @@ class HandTracker(
             val size2 = maxOf(d2(0, 9), d2(5, 17)).coerceAtLeast(1e-3f)
             if (d2(0, 9) < 12f * sc) continue            // detecção minúscula = provável fantasma
             val r2 = d2(4, 8) / size2
-            val ratioMix = 0.5f * (r2 + r3)
-            // Extensão dos dedos: compara ponta e articulação com o punho. É uma heurística simples,
-            // por isso o gesto só é publicado depois de alguns quadros concordarem.
-            fun nd(a: Int, b: Int): Float {
-                val dx = nl[a].x() - nl[b].x()
-                val dy = nl[a].y() - nl[b].y()
-                val dz = nl[a].z() - nl[b].z()
-                return sqrt(dx * dx + dy * dy + dz * dz)
-            }
+            // A medida 3D recebe mais peso: a razão 2D muda bastante quando a mão gira de lado.
+            val ratioMix = 0.30f * r2 + 0.70f * r3
+            // Extensão baseada no ângulo da articulação PIP + distância 3D da ponta ao punho.
+            // Isso evita classificar um dedo apenas porque ele parece comprido na imagem 2D.
+            val mcps = intArrayOf(5, 9, 13, 17)
             val pips = intArrayOf(6, 10, 14, 18)
+            val dips = intArrayOf(7, 11, 15, 19)
             val tips = intArrayOf(8, 12, 16, 20)
-            val ext = BooleanArray(4) { fi -> nd(0, tips[fi]) > nd(0, pips[fi]) * 1.12f }
+            val ext = BooleanArray(4) { fi ->
+                val angle = jointAngleDeg(wl[mcps[fi]], wl[pips[fi]], wl[dips[fi]])
+                val tipFromWrist = dist3(wl[0], wl[tips[fi]])
+                val pipFromWrist = dist3(wl[0], wl[pips[fi]])
+                angle > 150f && tipFromWrist > pipFromWrist * 1.05f
+            }
             val extCount = ext.count { it }
-            val thumbExtended = nd(0, 4) > nd(0, 3) * 1.10f
+            val thumbAngle = jointAngleDeg(wl[2], wl[3], wl[4])
+            val thumbExtended = thumbAngle > 145f && dist3(wl[0], wl[4]) > dist3(wl[0], wl[3]) * 1.05f
             val cat = if (k < hands.size && hands[k].isNotEmpty()) hands[k][0] else null
             raw.add(Det(out, nl[0].x(), ratioMix,
                 cat?.categoryName() ?: "", cat?.score() ?: 0f, bx0, by0, bx1, by1, zc,
@@ -827,36 +864,59 @@ class HandTracker(
             seen[h] = true
             val d = dets[i]
             if (!active[h]) {
-                filters[h].reset(); pinchState[h] = false; vel[h].fill(0f)
+                filters[h].reset(); pinchState[h] = false; pinchOnCount[h] = 0; vel[h].fill(0f)
                 ratioOut[h] = 1f; closingS[h] = false; rvF[h] = 0f
                 conf[h] = 0; offCount[h] = 0
                 gestureState[h] = HandGesture.NONE; gestureCandidate[h] = HandGesture.NONE; gestureFrames[h] = 0
             }
             if (conf[h] < 10) conf[h]++
             val dtH = (tSec - prevT[h]).coerceAtLeast(1e-3f)
-            priors[h].enforce(d.pts, d.score > 0.65f && d.ratio > 0.60f && d.extendedCount == 4) // aprende comprimentos com a mão aberta
+            if (active[h]) {
+                // Se o pulso salta por erro de detecção, desloca a mão inteira pelo mesmo vetor.
+                // Assim reduzimos o teleporte sem mudar a distância entre os dedos.
+                val dx = d.pts[0] - prevPts[h][0]
+                val dy = d.pts[1] - prevPts[h][1]
+                val dz = d.pts[2] - prevPts[h][2]
+                val step = sqrt(dx * dx + dy * dy + dz * dz)
+                val allowed = (dtH * MAX_WRIST_SPEED_MPS).coerceIn(MIN_WRIST_STEP_METERS, MAX_WRIST_STEP_METERS)
+                if (step > allowed && step > 1e-6f) {
+                    val scale = allowed / step
+                    val shiftX = prevPts[h][0] + dx * scale - d.pts[0]
+                    val shiftY = prevPts[h][1] + dy * scale - d.pts[1]
+                    val shiftZ = prevPts[h][2] + dz * scale - d.pts[2]
+                    for (point in 0 until 21) {
+                        val base = point * 3
+                        d.pts[base] += shiftX
+                        d.pts[base + 1] += shiftY
+                        d.pts[base + 2] += shiftZ
+                    }
+                }
+            }
             filters[h].apply(d.pts, tSec)
+            // Corrigir comprimentos depois da suavização evita que cada articulação termine com um atraso diferente.
+            priors[h].enforce(d.pts, d.score > 0.65f && d.ratio > 0.60f && d.extendedCount == 4)
             if (active[h]) {
                 for (c in 0..2) {
                     val nv = (d.pts[c] - prevPts[h][c]) / dtH
-                    vel[h][c] = (0.5f * vel[h][c] + 0.5f * nv).coerceIn(-3f, 3f)
+                    vel[h][c] = (0.65f * vel[h][c] + 0.35f * nv).coerceIn(-3f, 3f)
                 }
             }
             System.arraycopy(d.pts, 0, prevPts[h], 0, 63)
             prevT[h] = tSec
 
-            // razão da pinça (levemente filtrada) e velocidade com que ela muda
+            // Razão da pinça com filtragem extra para que pequenas oscilações não disparem o gesto.
             val oldR = ratioOut[h]
-            ratioOut[h] = 0.6f * d.ratio + 0.4f * oldR
-            if (active[h]) rvF[h] = 0.5f * rvF[h] + 0.5f * ((ratioOut[h] - oldR) / dtH)
+            ratioOut[h] = 0.55f * d.ratio + 0.45f * oldR
+            if (active[h]) rvF[h] = 0.65f * rvF[h] + 0.35f * ((ratioOut[h] - oldR) / dtH)
             val rr = ratioOut[h]
             if (pinchState[h]) {
+                pinchOnCount[h] = 0
                 if (rr < pinchMin[h]) pinchMin[h] = rr
-                val thr = (pinchMin[h] + 0.15f).coerceIn(PINCH_REL_MIN, PINCH_REL_MAX)
+                val thr = (pinchMin[h] + 0.14f).coerceIn(PINCH_REL_MIN, PINCH_REL_MAX)
                 if (rr > thr) {
                     offCount[h]++
-                    // abrindo de propósito (razão subindo rápido): solta no 1º quadro; senão confirma em 2
-                    val need = if (rvF[h] > 0.4f) 1 else 2
+                    // Solta rapidamente quando o usuário realmente abre os dedos; caso contrário exige 2 quadros.
+                    val need = if (rvF[h] > 0.55f) 1 else 2
                     if (offCount[h] >= need) pinchState[h] = false
                 } else {
                     offCount[h] = 0
@@ -864,8 +924,15 @@ class HandTracker(
             } else {
                 offCount[h] = 0
                 if (rr < PINCH_ON) {
-                    pinchState[h] = true
-                    pinchMin[h] = rr
+                    pinchOnCount[h]++
+                    // Dois quadros seguidos confirmam a pinça e evitam cliques causados por um único frame ruim.
+                    if (pinchOnCount[h] >= 2) {
+                        pinchState[h] = true
+                        pinchMin[h] = rr
+                        pinchOnCount[h] = 0
+                    }
+                } else {
+                    pinchOnCount[h] = 0
                 }
             }
             // "fechando": a razão está caindo RÁPIDO (pinça a caminho); mão relaxada não dispara
@@ -877,7 +944,7 @@ class HandTracker(
 
             val candidate = when {
                 pinchState[h] -> HandGesture.PINCH
-                d.extendedCount == 4 -> HandGesture.OPEN
+                d.extendedCount >= 3 -> HandGesture.OPEN
                 d.indexExtended && d.extendedCount == 1 -> HandGesture.POINT
                 d.extendedCount == 0 && d.thumbExtended -> HandGesture.THUMBS_UP
                 d.extendedCount == 0 -> HandGesture.FIST
@@ -899,6 +966,7 @@ class HandTracker(
                 active[h] = false
                 conf[h] = 0
                 pinchState[h] = false
+                pinchOnCount[h] = 0
                 closingS[h] = false
                 vel[h].fill(0f)
                 ratioOut[h] = 1f

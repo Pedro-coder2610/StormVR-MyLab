@@ -97,6 +97,7 @@ class VrState {
     val handValid = BooleanArray(2)
     val handPinch = BooleanArray(2)
     val handRatio = floatArrayOf(1f, 1f)   // distância polegar-indicador / tamanho da mão
+    val handGesture = IntArray(2) { HandGesture.NONE } // gesto reconhecido e estabilizado por mão
     val handClosing = BooleanArray(2)      // pinça se fechando (cursor deve congelar)
     // bolinha da pinça = cursor (na linha olho -> alvo, na distância da mão)
     val ball = Array(2) { FloatArray(3) }

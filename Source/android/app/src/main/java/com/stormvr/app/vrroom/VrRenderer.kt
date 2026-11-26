@@ -670,7 +670,16 @@ class VrRenderer(
     private val abyssPod = floatArrayOf(0.78f, 0.84f, 0.88f, 1f)
     private val abyssRing = floatArrayOf(1.00f, 0.80f, 0.25f, 1f)
     private val abyssRingOk = floatArrayOf(0.20f, 1.00f, 0.58f, 1f)
+    // Estado da missão: física simplificada, mas com inércia, correnteza, oxigênio e objetivo.
     private var abyssAirLevel = 0.30f
+    private var abyssPodVelocity = 0f
+    private var abyssPodHeight = -0.40f
+    private var abyssCurrent = 0f
+    private var abyssOxygen = 180f
+    private var abyssMissionTime = 0f
+    private var abyssStableTime = 0f
+    private var abyssMissionState = 0 // 0 em andamento, 1 resgate concluído, 2 oxigênio esgotado
+    private var abyssLastPhysicsNs = 0L
     private var abyssLookTarget = 0
     private var abyssLookStartedNs = 0L
     private var abyssDwellProgress = 0f
@@ -1518,6 +1527,33 @@ class VrRenderer(
     // ===================================================================== Operação Abismo — protótipo 01
     // O eixo Y aponta para a frente e Z para cima, igual ao restante mundo 3D do StormVR.
     private fun updateAbyssInteraction(nowNs: Long) {
+        // Física independente do FPS: a cápsula ganha/perde velocidade, não teletransporta.
+        val dt = if (abyssLastPhysicsNs == 0L) 0.016f
+            else ((nowNs - abyssLastPhysicsNs) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
+        abyssLastPhysicsNs = nowNs
+        val t = nowNs / 1_000_000_000f
+        if (abyssMissionState == 0) {
+            abyssMissionTime += dt
+            abyssOxygen = (abyssOxygen - dt).coerceAtLeast(0f)
+            abyssCurrent = sin(t * 0.72f) * 0.10f + sin(t * 1.31f) * 0.045f
+            val buoyancy = (abyssAirLevel - 0.5f) * 1.55f
+            abyssPodVelocity += (buoyancy + abyssCurrent - abyssPodVelocity * 0.82f) * dt
+            abyssPodHeight = (abyssPodHeight + abyssPodVelocity * dt * 1.8f).coerceIn(-1.35f, 1.35f)
+            if (abyssOxygen <= 0f) abyssMissionState = 2
+            if (kotlin.math.abs(abyssPodHeight) < 0.075f && kotlin.math.abs(abyssPodVelocity) < 0.10f) {
+                abyssStableTime += dt
+                if (abyssStableTime >= 4.0f) abyssMissionState = 1
+            } else {
+                abyssStableTime = (abyssStableTime - dt * 1.5f).coerceAtLeast(0f)
+            }
+        }
+
+        if (abyssMissionState != 0) {
+            abyssLookTarget = 0
+            abyssDwellProgress = 0f
+            return
+        }
+
         val gx = st.gaze[0]
         val gy = st.gaze[1]
         val gz = st.gaze[2]
@@ -1537,7 +1573,6 @@ class VrRenderer(
             else -> 0
         }
 
-        // A mão apontando seleciona o lado do corpo; a mesma mão pinça para acionar.
         var anyHandVisible = false
         var handSelected = 0
         var handPinching = false
@@ -1558,8 +1593,6 @@ class VrRenderer(
             }
         }
 
-        // Com uma mão visível, abrir a mão/desapontar limpa a seleção e rearma o controle.
-        // Sem mãos visíveis, o modo antigo por olhar continua disponível.
         val usingHands = anyHandVisible
         val selected = if (usingHands) handSelected else gazeSelected
         val pinching = usingHands && handSelected != 0 && handPinching
@@ -1580,26 +1613,24 @@ class VrRenderer(
         }
 
         if (pinchPressed && abyssLookArmed) {
-            abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.10f).coerceAtMost(1f)
-                            else (abyssAirLevel - 0.10f).coerceAtLeast(0f)
+            // Válvulas em passos menores: o jogador precisa corrigir sem exagerar.
+            abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.08f).coerceAtMost(1f)
+                            else (abyssAirLevel - 0.08f).coerceAtLeast(0f)
             abyssLookArmed = false
             abyssDwellProgress = 1f
             return
         }
-
         if (usingHands) {
-            // A válvula fica realçada enquanto o indicador aponta. Sem pinça, não altera o ar.
             abyssDwellProgress = if (pinching) 0.8f else 0.28f
             return
         }
         if (!abyssLookArmed) return
 
-        // Fallback acessível: sem câmera/mãos, manter o olhar por 1,2 s aciona a válvula.
         val elapsed = (nowNs - abyssLookStartedNs).coerceAtLeast(0L)
         abyssDwellProgress = (elapsed / 1_200_000_000f).coerceIn(0f, 1f)
         if (elapsed >= 1_200_000_000L) {
-            abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.10f).coerceAtMost(1f)
-                            else (abyssAirLevel - 0.10f).coerceAtLeast(0f)
+            abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.08f).coerceAtMost(1f)
+                            else (abyssAirLevel - 0.08f).coerceAtLeast(0f)
             abyssLookArmed = false
             abyssDwellProgress = 1f
         }
@@ -1618,8 +1649,8 @@ class VrRenderer(
 
     private fun drawAbyssScene() {
         val t = SystemClock.elapsedRealtime() * 0.001f
-        val podZ = (abyssAirLevel - 0.5f) * 2.0f
-        val aligned = abs(podZ) < 0.13f
+        val podZ = abyssPodHeight
+        val aligned = abs(podZ) < 0.13f && abs(abyssPodVelocity) < 0.10f
 
         // Céu submarino em 360 graus, com fundo de areia.
         GLES20.glUseProgram(roomProg)
@@ -1698,7 +1729,7 @@ class VrRenderer(
         }
 
         // Aro de referência: o módulo deve ficar no centro para obter flutuabilidade neutra.
-        abyssColor(if (aligned) abyssRingOk else abyssRing)
+        abyssColor(if (abyssMissionState == 1 || abyssStableTime >= 3.0f) abyssRingOk else abyssRing)
         drawBone(-0.48f, 5.2f, 0.48f, 0.48f, 5.2f, 0.48f, 0.025f, 0.025f)
         drawBone(-0.48f, 5.2f, -0.48f, 0.48f, 5.2f, -0.48f, 0.025f, 0.025f)
         drawBone(-0.48f, 5.2f, -0.48f, -0.48f, 5.2f, 0.48f, 0.025f, 0.025f)
@@ -1710,6 +1741,30 @@ class VrRenderer(
         beginAbyssOrganic()
         abyssColor(abyssBlue)
         drawSphere(0.27f, 5.16f, podZ + 0.12f, 0.12f + abyssAirLevel * 0.18f)
+
+        // Correnteza visível: setas laterais variam com a força atual e empurram a cápsula.
+        val currentColor = if (abs(abyssCurrent) > 0.08f) abyssCoral2 else abyssBlue
+        abyssColor(currentColor)
+        val arrowDir = if (abyssCurrent >= 0f) 1f else -1f
+        for (i in 0..2) {
+            val yy = 4.65f + i * 0.48f
+            drawBone(-1.45f, yy, -0.18f, -1.10f + arrowDir * 0.12f, yy, -0.18f, 0.025f, 0.012f)
+            drawBone(-1.10f + arrowDir * 0.12f, yy, -0.18f, -1.22f + arrowDir * 0.12f, yy + 0.10f, -0.18f, 0.018f, 0.008f)
+            drawBone(-1.10f + arrowDir * 0.12f, yy, -0.18f, -1.22f + arrowDir * 0.12f, yy - 0.10f, -0.18f, 0.018f, 0.008f)
+        }
+
+        // HUD diegético: oxigênio, estabilidade e estado da missão em luzes coloridas.
+        for (i in 0 until 10) {
+            val filled = abyssOxygen > (i * 18f)
+            abyssColor(if (!filled) abyssRock else if (abyssOxygen < 35f) abyssCoral else abyssBlue)
+            drawSphere(-1.42f + (i % 5) * 0.16f, 2.45f, -0.30f + (i / 5) * 0.16f, 0.045f)
+        }
+        for (i in 0 until 4) {
+            abyssColor(if (abyssStableTime >= (i + 1) * 1.0f) abyssRingOk else abyssRock)
+            drawSphere(1.20f + i * 0.16f, 2.45f, -0.30f, 0.045f)
+        }
+        abyssColor(if (abyssMissionState == 1) abyssRingOk else if (abyssMissionState == 2) abyssCoral else abyssWhite)
+        drawSphere(0f, 2.45f, -0.30f, 0.10f)
 
         // Válvulas flutuantes: olhar e manter por 1,2 s. Os símbolos distinguem as ações.
         val progress = abyssDwellProgress

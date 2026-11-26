@@ -1,5 +1,19 @@
 package com.stormvr.app.vrroom
 
+/**
+ * IDs estáveis dos gestos reconhecidos pelo HandTracker.
+ * Mantidos como Int porque HandsFrame.gesture é um IntArray.
+ */
+object HandGesture {
+    const val NONE = 0
+    const val PINCH = 1
+    const val OPEN = 2
+    const val POINT = 3
+    const val THUMBS_UP = 4
+    const val FIST = 5
+    const val RELAXED = 6
+}
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.Image

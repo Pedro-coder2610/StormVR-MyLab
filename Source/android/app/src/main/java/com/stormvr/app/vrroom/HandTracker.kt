@@ -33,6 +33,17 @@ object HandGesture {
     const val THUMBS_UP = 4
     const val FIST = 5
     const val RELAXED = 6
+
+    fun label(value: Int): String = when (value) {
+        NONE -> "não detectada"
+        RELAXED -> "relaxada"
+        OPEN -> "mão aberta"
+        POINT -> "apontando"
+        THUMBS_UP -> "positivo"
+        FIST -> "punho fechado"
+        PINCH -> "pinça"
+        else -> "não detectada"
+    }
 }
 
 /** Resultado publicado pelo tracker. Posições no referencial da cena (metros): 21 pontos x (x,y,z). */

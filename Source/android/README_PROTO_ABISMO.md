@@ -1,34 +1,35 @@
-# Operação Abismo VR — integração com mãos estabilizadas
+# Operação Abismo VR — protótipo de cockpit submarino
 
 O modo Abismo reutiliza o renderizador estéreo do StormVR, o giroscópio e o rastreador MediaPipe/One Euro.
 
-## Controles
+## Conceito visual atual
 
-- Com as mãos visíveis, aponte com o indicador para a esquerda para selecionar a válvula azul (adicionar ar) ou para a direita para selecionar a válvula laranja (liberar ar).
-- Faça uma pinça com polegar e indicador para confirmar a válvula.
-- Abra a mão ou pare de apontar para soltar a seleção e permitir outro comando.
-- As duas mãos voltam a ser desenhadas na cena. A cor muda conforme o gesto: mão aberta (ciano), apontando (amarelo), punho fechado (coral), pinça (verde) e positivo (lilás); em repouso, esquerda azul-gelo e direita coral.
-- Sem câmera ou sem mão detectada, mantenha o olhar sobre a válvula por aproximadamente 1,2 segundo como alternativa.
-- A cabeça continua sendo orientada pelo giroscópio; a câmera é usada para rastrear as mãos, não para 6DoF da cabeça.
+A cena agora é vista de dentro de um submarino compacto, com casco octogonal fechado, piso e teto metálicos, escotilha estanque atrás do operador, tubulações laterais e console frontal. Não há janela direta para o oceano nesta etapa: o sonar é a principal representação visual do exterior.
 
-## Missão — Operação Abismo
+O painel possui uma tela de sonar com varredura animada, ecos, dois mostradores analógicos e dois comandos físicos de lastro. Esta é a base visual e interativa; a missão, narrativa e objetivos serão construídos em etapas posteriores.
 
-A missão agora tem um objetivo jogável: estabilizar o módulo de resgate dentro do aro antes que o oxigênio acabe.
+## Controles do cockpit
 
-- **Válvula azul:** adiciona ar em pequenos incrementos e aumenta o empuxo.
-- **Válvula laranja:** libera ar e reduz o empuxo.
-- **Inércia:** a cápsula acelera e desacelera gradualmente; evite corrigir demais.
-- **Correnteza:** uma força variável interfere na subida/descida e é indicada por setas na cena.
-- **Oxigênio:** há uma reserva de 180 segundos para concluir a missão.
-- **Estabilidade:** mantenha a cápsula próxima do centro do aro e com pouca velocidade por 4 segundos para concluir o resgate.
-- **Falha:** o oxigênio esgotado encerra a tentativa.
+- O comando azul bombeia ar para o lastro e aumenta a flutuabilidade.
+- O comando laranja libera ar do lastro e reduz a flutuabilidade.
+- Sem uma mão apontando, mantenha o olhar sobre um dos comandos para confirmar depois de aproximadamente 1,2 segundo.
+- Com rastreamento de mãos ativo, aponte para a esquerda ou direita e faça uma pinça para confirmar.
+- Uma mão aberta ou relaxada não deve bloquear a alternativa de controle pelo olhar.
+- A variação do lastro altera gradualmente a leitura de profundidade; há inércia simplificada e correnteza de teste.
 
-A física é uma simulação didática simplificada, não um solucionador hidrodinâmico calibrado. As luzes do HUD representam a reserva de oxigênio e o progresso de estabilidade.
+## Próximas etapas de design
+
+1. Dar função de jogo ao sonar (detectar um ponto de interesse, rota ou sinal).
+2. Definir a primeira missão e uma sequência de tarefas dentro do submarino.
+3. Acrescentar consequências e feedback aos sistemas do casco, oxigênio, energia e navegação.
+4. Testar legibilidade, conforto e desempenho no Galaxy A35 com o VR Box.
+
+A física atual é um protótipo didático simplificado. Não representa um modelo hidrodinâmico ou de submarino real.
 
 ## Mesa de xadrez
 
-A mesa 3D de xadrez fica na **Sala VR** (não dentro do cenário submarino), à frente do jogador, com as 32 peças na posição inicial. Ela é uma peça de cenário/teste de gestos nesta versão, ainda não um tabuleiro com regras e partidas jogáveis.
+A mesa 3D de xadrez fica na **Sala VR**, fora do modo Abismo. É cenário/teste de gestos nesta versão, não um tabuleiro com regras e partidas jogáveis.
 
 ## Desempenho e compatibilidade
 
-O modo Abismo usa rastreamento de duas mãos a 20 fps e renderização leve para equilibrar a fluidez no celular. A qualidade real depende da iluminação, distância das mãos, temperatura e desempenho do aparelho. Teste no Galaxy A35/VR Box depois de compilar o APK.
+O modo Abismo usa renderização estéreo leve e rastreamento de mãos a 20 fps. O desempenho real depende da iluminação, distância das mãos, temperatura e capacidade do aparelho. A compilação Android não substitui o teste físico no Galaxy A35/VR Box.

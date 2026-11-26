@@ -94,14 +94,22 @@ class MainActivity : Activity() {
         // ---- atalhos grandes
         root.addView(Ui.label(c, "O que você quer fazer?", 15f, Color.WHITE))
         root.addView(Ui.row(c,
-            Ui.tile(c, "🥽", "Sala VR", "navegador, TV e mãos", highlight = true) { startActivity(Intent(c, com.stormvr.app.vrroom.VrRoomActivity::class.java)) },
-            Ui.tile(c, "⚔️", "StormSaber", "jogo de sabres") { startActivity(Intent(c, StormSaberActivity::class.java)) }))
+            Ui.tile(c, "🌊", "Abismo VR", "protótipo de empuxo", highlight = true) {
+                startActivity(Intent(c, com.stormvr.app.vrroom.VrRoomActivity::class.java)
+                    .putExtra(com.stormvr.app.vrroom.VrRoomActivity.EXTRA_ABYSS_MODE, true))
+            },
+            Ui.tile(c, "🥽", "Sala VR", "navegador, TV e mãos") { startActivity(Intent(c, com.stormvr.app.vrroom.VrRoomActivity::class.java)) }))
         root.addView(Ui.row(c,
-            Ui.tile(c, "🕹", "Modo controle", "este celular vira controle") { startActivity(Intent(c, ControllerActivity::class.java)) },
-            Ui.tile(c, "📺", "Moonlight", "espelhar o PC") { startActivity(Intent(c, com.stormvr.app.moonlight.MoonlightActivity::class.java)) }))
+            Ui.tile(c, "⚔️", "StormSaber", "jogo de sabres") { startActivity(Intent(c, StormSaberActivity::class.java)) },
+            Ui.tile(c, "🕹", "Modo controle", "este celular vira controle") { startActivity(Intent(c, ControllerActivity::class.java)) }))
         root.addView(Ui.row(c,
-            Ui.tile(c, "📱", "Aplicativos", "apps do Android na TV") { startActivity(Intent(c, com.stormvr.app.applauncher.AppLauncherActivity::class.java)) },
-            Ui.tile(c, "🎮", "Gamepad", "mapear botões") { startActivity(Intent(c, GamepadMapActivity::class.java)) }))
+            Ui.tile(c, "📺", "Moonlight", "espelhar o PC") { startActivity(Intent(c, com.stormvr.app.moonlight.MoonlightActivity::class.java)) },
+            Ui.tile(c, "📱", "Aplicativos", "apps do Android na TV") { startActivity(Intent(c, com.stormvr.app.applauncher.AppLauncherActivity::class.java)) }))
+        root.addView(Ui.row(c,
+            Ui.tile(c, "🎮", "Gamepad", "mapear botões") { startActivity(Intent(c, GamepadMapActivity::class.java)) },
+            Ui.tile(c, "⚙️", "Configurações", "ajustes do StormVR") {
+                startActivity(Intent(c, SettingsActivity::class.java))
+            }))
 
         // ---- apoie
         root.addView(Ui.button(c, "💜  Me ajude a continuar melhorando o StormVR", primary = true) {

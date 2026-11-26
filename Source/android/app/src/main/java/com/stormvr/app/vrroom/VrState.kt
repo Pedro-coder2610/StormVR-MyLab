@@ -8,27 +8,6 @@ import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/** Gestos reconhecidos a partir dos 21 pontos do MediaPipe. */
-object HandGesture {
-    const val NONE = 0
-    const val RELAXED = 1
-    const val OPEN = 2
-    const val POINT = 3
-    const val FIST = 4
-    const val PINCH = 5
-    const val THUMBS_UP = 6
-
-    fun label(value: Int): String = when (value) {
-        RELAXED -> "relaxada"
-        OPEN -> "mão aberta"
-        POINT -> "apontando"
-        FIST -> "mão fechada"
-        PINCH -> "pinça"
-        THUMBS_UP -> "positivo"
-        else -> "não detectada"
-    }
-}
-
 /** Tipos de alvo que um laser pode estar apontando. */
 object Hit {
     const val NONE = 0
@@ -69,6 +48,8 @@ class VrState {
     }
 
     @Volatile var stereo = true
+    // Modo experimental do projeto escolar: cena submarina com interação por olhar.
+    @Volatile var abyssMode = false
     @Volatile var recenter = true
     @Volatile var rotation = 0
 
@@ -116,7 +97,6 @@ class VrState {
     val handValid = BooleanArray(2)
     val handPinch = BooleanArray(2)
     val handRatio = floatArrayOf(1f, 1f)   // distância polegar-indicador / tamanho da mão
-    val handGesture = IntArray(2) { HandGesture.NONE } // gesto estabilizado: aberta, apontando, fechada, pinça...
     val handClosing = BooleanArray(2)      // pinça se fechando (cursor deve congelar)
     // bolinha da pinça = cursor (na linha olho -> alvo, na distância da mão)
     val ball = Array(2) { FloatArray(3) }
@@ -349,8 +329,8 @@ class VrState {
         var kx: Float; var kyy: Float; var kz: Float; var kw: Float
         var px = 0f; var py = 0f; var pz = 0f                                    // pivô da órbita
         if (handsOn && handState >= 2) {
-            // Teclado maior, um pouco mais afastado e mais baixo para facilitar alcançar as teclas.
-            kx = headX; kyy = headY + 0.72f; kz = headZ - 0.20f; kw = 0.95f
+            // com as mãos ligadas o teclado fica ao alcance (a ~60 cm), para digitar tocando ou pinçando as teclas
+            kx = headX; kyy = headY + 0.62f; kz = headZ - 0.12f; kw = 0.70f
             px = headX; py = headY; pz = headZ
         } else { kx = wx; kyy = ky; kz = -0.85f; kw = KB_METERS }
         val d = (Math.PI / 180.0).toFloat()

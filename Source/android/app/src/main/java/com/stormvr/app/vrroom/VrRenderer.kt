@@ -536,14 +536,13 @@ class VrRenderer(
         val now = System.nanoTime()
         val dt = if (lastHandsNs == 0L) 0.016f else ((now - lastHandsNs) / 1e9f).coerceIn(0.001f, 0.1f)
         lastHandsNs = now
-        val a = 1f - exp(-dt * 28f)
+        val a = 1f - exp(-dt * 38f)
         synchronized(st.handLock) {
             for (h in 0..1) {
                 val ok = f != null && f.valid[h] && (now - f.arrivalNs) < 300_000_000L
                 st.handValid[h] = ok
                 st.handPinch[h] = ok && f!!.pinch[h]
                 st.handRatio[h] = if (ok) f!!.ratio[h] else 1f
-                st.handGesture[h] = if (ok) f!!.gesture[h] else HandGesture.NONE
                 st.handClosing[h] = ok && f!!.closing[h]
                 if (!ok) {
                     hRenderInit[h] = false
@@ -551,7 +550,7 @@ class VrRenderer(
                 }
                 // atraso real: processamento do rastreador + (fora do modo câmera) latência da câmera
                 val camLat = if (st.passthrough) 0f else arLatNs / 1e9f
-                val age = (((now - f!!.arrivalNs + f.latNs) / 1e9f + camLat).coerceIn(0f, 0.10f))
+                val age = ((((now - f!!.arrivalNs) + f.latNs) / 1e9f + camLat) * 0.8f).coerceIn(0f, 0.14f)
                 val src = f.pts[h]
                 val v = f.vel[h]
                 val dst = st.handPts[h]
@@ -559,8 +558,7 @@ class VrRenderer(
                 for (i in 0 until 21) {
                     for (c in 0..2) {
                         val k = i * 3 + c
-                        // Compensa só parte do atraso. Predizer demais com velocidade ruidosa causa saltos.
-                        val t = src[k] + v[c] * (age * 0.25f)
+                        val t = src[k] + v[c] * age
                         if (!hRenderInit[h]) r[k] = t else r[k] += (t - r[k]) * a
                         dst[k] = r[k]
                     }
@@ -633,7 +631,6 @@ class VrRenderer(
     private val handOk = BooleanArray(2)
     private val handPin = BooleanArray(2)
     private val handRat = FloatArray(2)
-    private val handGest = IntArray(2)
     private val ballColor = FloatArray(4)
 
     // programa 2D plano (teclado)
@@ -659,6 +656,23 @@ class VrRenderer(
     private val cHandle = floatArrayOf(0.85f, 0.85f, 0.92f, 0.55f)
     private val cHandleHot = floatArrayOf(0.3f, 0.65f, 1f, 1f)
     private val cFrame = floatArrayOf(0.02f, 0.02f, 0.03f, 1f)
+
+    // ---------------- protótipo Operação Abismo ----------------
+    private val abyssBlue = floatArrayOf(0.10f, 0.78f, 1.00f, 1f)
+    private val abyssOrange = floatArrayOf(1.00f, 0.48f, 0.16f, 1f)
+    private val abyssWhite = floatArrayOf(0.82f, 0.96f, 1.00f, 1f)
+    private val abyssRock = floatArrayOf(0.12f, 0.24f, 0.31f, 1f)
+    private val abyssCoral = floatArrayOf(1.00f, 0.26f, 0.42f, 1f)
+    private val abyssCoral2 = floatArrayOf(1.00f, 0.60f, 0.28f, 1f)
+    private val abyssKelp = floatArrayOf(0.08f, 0.55f, 0.39f, 1f)
+    private val abyssPod = floatArrayOf(0.78f, 0.84f, 0.88f, 1f)
+    private val abyssRing = floatArrayOf(1.00f, 0.80f, 0.25f, 1f)
+    private val abyssRingOk = floatArrayOf(0.20f, 1.00f, 0.58f, 1f)
+    private var abyssAirLevel = 0.30f
+    private var abyssLookTarget = 0
+    private var abyssLookStartedNs = 0L
+    private var abyssDwellProgress = 0f
+    private var abyssLookArmed = true
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         roomProg = program(ROOM_VS, ROOM_FS)
@@ -857,6 +871,7 @@ class VrRenderer(
             drawFullscreen(); return
         }
         updateHead()
+        if (st.abyssMode) updateAbyssInteraction(System.nanoTime())
 
         // com distorção de lente ligada os olhos vão para um alvo fora da tela e depois passam pelo shader da lente
         val lens = st.stereo && lensFbo != 0 && (st.k1 > 0.005f || st.k2 > 0.005f)
@@ -1048,6 +1063,10 @@ class VrRenderer(
     }
 
     private fun drawScene() {
+        if (st.abyssMode) {
+            drawAbyssScene()
+            return
+        }
         if (st.passthrough) drawBackground() else drawRoom()
         drawBrowserWindow()
 
@@ -1181,10 +1200,6 @@ class VrRenderer(
     ).also { for (i in it.indices) it[i] *= 0.88f }       // dedos mais finos e elegantes
     private val cHandL = floatArrayOf(0.55f, 0.82f, 1.00f, 1f)    // azul-gelo suave
     private val cHandR = floatArrayOf(1.00f, 0.70f, 0.62f, 1f)    // coral suave
-    private val cGestureOpen = floatArrayOf(0.28f, 0.90f, 1.00f, 1f)
-    private val cGesturePoint = floatArrayOf(1.00f, 0.86f, 0.24f, 1f)
-    private val cGestureFist = floatArrayOf(1.00f, 0.48f, 0.20f, 1f)
-    private val cGestureThumb = floatArrayOf(0.80f, 0.62f, 1.00f, 1f)
     private val cPinch = floatArrayOf(0.30f, 1.00f, 0.55f, 1f)
     private val cReticle = floatArrayOf(1f, 1f, 1f, 1f)
     private val ballS = Array(2) { FloatArray(3) }
@@ -1198,7 +1213,6 @@ class VrRenderer(
                 handOk[h] = st.handValid[h]
                 handPin[h] = st.handPinch[h]
                 handRat[h] = st.handRatio[h]
-                handGest[h] = st.handGesture[h]
                 if (handOk[h]) System.arraycopy(st.handPts[h], 0, handCopy[h], 0, 63)
             }
         }
@@ -1214,14 +1228,7 @@ class VrRenderer(
         for (h in 0..1) {
             if (!handOk[h]) { ballInit[h] = false; continue }
             val p = handCopy[h]
-            val base = when (handGest[h]) {
-                HandGesture.OPEN -> cGestureOpen
-                HandGesture.POINT -> cGesturePoint
-                HandGesture.FIST -> cGestureFist
-                HandGesture.PINCH -> cPinch
-                HandGesture.THUMBS_UP -> cGestureThumb
-                else -> if (h == 0) cHandL else cHandR
-            }
+            val base = if (h == 0) cHandL else cHandR
             GLES20.glUniform4fv(hColor, 1, base, 0)
 
             // palma com espessura: duas camadas deslocadas ao longo da normal
@@ -1467,10 +1474,6 @@ class VrRenderer(
     private val cConsole = floatArrayOf(0.20f, 0.12f, 0.08f, 1f)
     private val cLampHead = floatArrayOf(1f, 0.85f, 0.55f, 1f)
     private val cPole = floatArrayOf(0.12f, 0.12f, 0.14f, 1f)
-    private val cChessTable = floatArrayOf(0.24f, 0.12f, 0.065f, 1f)
-    private val cChessBoard = floatArrayOf(0.82f, 0.66f, 0.46f, 1f)
-    private val cChessWhite = floatArrayOf(0.90f, 0.84f, 0.70f, 1f)
-    private val cChessBlack = floatArrayOf(0.12f, 0.13f, 0.17f, 1f)
     private val tmpC = FloatArray(4)
 
     private fun shade(c: FloatArray, f: Float): FloatArray {
@@ -1490,6 +1493,178 @@ class VrRenderer(
         quadRoom(shade(c, 0.65f), mode, sy, sz)
         basis(0f, 1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f, cx + sx / 2, cy, cz, sy, sz)
         quadRoom(shade(c, 0.65f), mode, sy, sz)
+    }
+
+    // ===================================================================== Operação Abismo — protótipo 01
+    // O eixo Y aponta para a frente e Z para cima, igual ao restante mundo 3D do StormVR.
+    private fun updateAbyssInteraction(nowNs: Long) {
+        val gx = st.gaze[0]
+        val gy = st.gaze[1]
+        val gz = st.gaze[2]
+        val gn = sqrt(gx * gx + gy * gy + gz * gz)
+        if (gn < 0.2f) return
+        val nx = gx / gn; val ny = gy / gn; val nz = gz / gn
+        val targetX = 0.86f
+        val targetY = 3.10f
+        val targetZ = -0.16f
+        val targetLen = sqrt(targetX * targetX + targetY * targetY + targetZ * targetZ)
+        val leftDot = (nx * -targetX + ny * targetY + nz * targetZ) / targetLen
+        val rightDot = (nx * targetX + ny * targetY + nz * targetZ) / targetLen
+        val selected = when {
+            leftDot > 0.992f -> 1       // válvula azul: adicionar ar
+            rightDot > 0.992f -> 2      // válvula laranja: liberar ar
+            else -> 0
+        }
+
+        if (selected == 0) {
+            abyssLookTarget = 0
+            abyssLookStartedNs = 0L
+            abyssDwellProgress = 0f
+            abyssLookArmed = true
+            return
+        }
+        if (selected != abyssLookTarget) {
+            abyssLookTarget = selected
+            abyssLookStartedNs = nowNs
+            abyssDwellProgress = 0f
+        }
+        if (!abyssLookArmed) return
+        val elapsed = (nowNs - abyssLookStartedNs).coerceAtLeast(0L)
+        abyssDwellProgress = (elapsed / 1_200_000_000f).coerceIn(0f, 1f)
+        if (elapsed >= 1_200_000_000L) {
+            abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.10f).coerceAtMost(1f)
+                            else (abyssAirLevel - 0.10f).coerceAtLeast(0f)
+            abyssLookArmed = false  // precisa desviar o olhar antes de acionar de novo
+            abyssDwellProgress = 1f
+        }
+    }
+
+    private fun beginAbyssOrganic() {
+        GLES20.glUseProgram(handProg)
+        GLES20.glUniformMatrix4fv(hVP, 1, false, vp, 0)
+        GLES20.glUniform3f(hEye, st.headX, st.headY, st.headZ)
+        GLES20.glUniform1f(hTaper, 1f)
+        GLES20.glEnableVertexAttribArray(hPos)
+        GLES20.glEnableVertexAttribArray(hNrm)
+    }
+
+    private fun abyssColor(c: FloatArray) { GLES20.glUniform4fv(hColor, 1, c, 0) }
+
+    private fun drawAbyssScene() {
+        val t = SystemClock.elapsedRealtime() * 0.001f
+        val podZ = (abyssAirLevel - 0.5f) * 2.0f
+        val aligned = abs(podZ) < 0.13f
+
+        // Céu submarino em 360 graus, com fundo de areia.
+        GLES20.glUseProgram(roomProg)
+        basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f, 0f, 16f, 1f, 40f, 24f)
+        quadRoom(abyssWhite, 9f, 40f, 24f)
+        basis(-1f, 0f, 0f, 0f, 0f, 1f, 0f, 1f, 0f, 0f, -16f, 1f, 40f, 24f)
+        quadRoom(abyssWhite, 9f, 40f, 24f)
+        basis(0f, 1f, 0f, 0f, 0f, 1f, 1f, 0f, 0f, 18f, 0f, 1f, 32f, 24f)
+        quadRoom(abyssWhite, 9f, 32f, 24f)
+        basis(0f, -1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f, -18f, 0f, 1f, 32f, 24f)
+        quadRoom(abyssWhite, 9f, 32f, 24f)
+        basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, -1f, 0f, 0f, 10f, 40f, 32f)
+        quadRoom(abyssWhite, 9f, 40f, 32f)
+        basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f, 6f, -3.2f, 40f, 34f)
+        quadRoom(abyssWhite, 10f, 40f, 34f)
+
+        // Feixes de luz que entram da superfície.
+        for (i in 0..2) {
+            val x = (i - 1) * 4.0f
+            basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f, x, 8.5f, 1.2f, 2.0f, 9.0f)
+            quadRoom(floatArrayOf(0.28f, 0.82f, 1f, 0.16f), 4f, 1f, 1f)
+        }
+
+        // Pedras grandes no chão e pequenas formações laterais.
+        beginAbyssOrganic()
+        abyssColor(abyssRock)
+        drawSphere(-3.0f, 5.8f, -2.65f, 0.86f)
+        drawSphere(-2.45f, 6.2f, -2.55f, 0.58f)
+        drawSphere(3.1f, 6.8f, -2.68f, 0.95f)
+        drawSphere(2.5f, 7.0f, -2.62f, 0.58f)
+        drawSphere(-4.6f, 10.0f, -2.8f, 1.1f)
+        drawSphere(4.4f, 11.0f, -2.8f, 1.0f)
+
+        // Algas e corais com hastes cônicas.
+        abyssColor(abyssKelp)
+        drawBone(-2.7f, 5.5f, -2.7f, -2.9f, 5.55f, -1.55f, 0.085f, 0.025f)
+        drawBone(-2.9f, 5.55f, -1.95f, -3.25f, 5.6f, -1.55f, 0.045f, 0.012f)
+        drawBone(-2.9f, 5.55f, -2.15f, -2.55f, 5.6f, -1.72f, 0.045f, 0.012f)
+        drawBone(2.8f, 6.2f, -2.7f, 3.0f, 6.25f, -1.45f, 0.085f, 0.025f)
+        drawBone(3.0f, 6.25f, -2.0f, 3.35f, 6.25f, -1.58f, 0.045f, 0.012f)
+        drawBone(3.0f, 6.25f, -2.15f, 2.65f, 6.2f, -1.72f, 0.045f, 0.012f)
+
+        abyssColor(abyssCoral)
+        drawBone(-1.85f, 5.2f, -2.65f, -1.85f, 5.2f, -1.45f, 0.13f, 0.045f)
+        drawBone(-1.85f, 5.2f, -1.95f, -2.3f, 5.15f, -1.55f, 0.075f, 0.025f)
+        drawBone(-1.85f, 5.2f, -1.82f, -1.42f, 5.22f, -1.38f, 0.075f, 0.025f)
+        drawBone(-2.3f, 5.15f, -1.55f, -2.45f, 5.18f, -1.28f, 0.045f, 0.012f)
+        drawSphere(-1.85f, 5.2f, -1.43f, 0.075f)
+        drawSphere(-2.45f, 5.18f, -1.27f, 0.055f)
+        abyssColor(abyssCoral2)
+        drawBone(1.9f, 5.7f, -2.65f, 1.9f, 5.7f, -1.62f, 0.12f, 0.045f)
+        drawBone(1.9f, 5.7f, -2.0f, 1.48f, 5.72f, -1.66f, 0.065f, 0.02f)
+        drawBone(1.9f, 5.7f, -1.88f, 2.32f, 5.68f, -1.52f, 0.065f, 0.02f)
+        drawSphere(1.48f, 5.72f, -1.65f, 0.055f)
+        drawSphere(2.32f, 5.68f, -1.50f, 0.055f)
+
+        // Peixes simples passam ao longe.
+        val fishX = 1.35f + sin((t * 0.45f).toDouble()).toFloat() * 0.55f
+        val fishY = 8.7f + cos((t * 0.30f).toDouble()).toFloat() * 0.35f
+        val fishZ = 1.05f + sin((t * 0.6f).toDouble()).toFloat() * 0.12f
+        abyssColor(floatArrayOf(1f, 0.72f, 0.30f, 1f))
+        drawSphere(fishX, fishY, fishZ, 0.16f)
+        drawBone(fishX - 0.13f, fishY + 0.02f, fishZ, fishX - 0.29f, fishY + 0.02f, fishZ + 0.08f, 0.06f, 0.008f)
+        abyssColor(abyssWhite)
+        drawSphere(-fishX - 1.0f, fishY + 3.0f, fishZ - 0.5f, 0.12f)
+        drawBone(-fishX - 0.9f, fishY + 3.0f, fishZ - 0.5f, -fishX - 0.76f, fishY + 3.0f, fishZ - 0.42f, 0.045f, 0.006f)
+
+        // Bolhas ascendentes.
+        abyssColor(floatArrayOf(0.50f, 0.90f, 1.00f, 0.65f))
+        for (i in 0 until 8) {
+            val phase = t * (0.55f + i * 0.025f) + i * 1.7f
+            val bx = -1.25f + (i % 4) * 0.23f + sin(phase.toDouble()).toFloat() * 0.06f
+            val by = 4.0f + (i / 4) * 1.1f
+            val bz = -1.5f + ((phase * 0.30f) % 2.0f)
+            drawSphere(bx, by, bz, 0.025f + (i % 3) * 0.009f)
+        }
+
+        // Aro de referência: o módulo deve ficar no centro para obter flutuabilidade neutra.
+        abyssColor(if (aligned) abyssRingOk else abyssRing)
+        drawBone(-0.48f, 5.2f, 0.48f, 0.48f, 5.2f, 0.48f, 0.025f, 0.025f)
+        drawBone(-0.48f, 5.2f, -0.48f, 0.48f, 5.2f, -0.48f, 0.025f, 0.025f)
+        drawBone(-0.48f, 5.2f, -0.48f, -0.48f, 5.2f, 0.48f, 0.025f, 0.025f)
+        drawBone(0.48f, 5.2f, -0.48f, 0.48f, 5.2f, 0.48f, 0.025f, 0.025f)
+
+        // Módulo de resgate e bolsa de ar: a altura responde ao empuxo simulado.
+        GLES20.glUseProgram(roomProg)
+        box(0f, 5.2f, podZ, 0.48f, 0.44f, 0.42f, abyssPod)
+        beginAbyssOrganic()
+        abyssColor(abyssBlue)
+        drawSphere(0.27f, 5.16f, podZ + 0.12f, 0.12f + abyssAirLevel * 0.18f)
+
+        // Válvulas flutuantes: olhar e manter por 1,2 s. Os símbolos distinguem as ações.
+        val progress = abyssDwellProgress
+        val leftR = 0.18f + if (abyssLookTarget == 1) progress * 0.045f else 0f
+        val rightR = 0.18f + if (abyssLookTarget == 2) progress * 0.045f else 0f
+        abyssColor(if (abyssLookTarget == 1 && progress > 0.05f) abyssWhite else abyssBlue)
+        drawSphere(-0.86f, 3.10f, -0.16f, leftR)
+        abyssColor(if (abyssLookTarget == 2 && progress > 0.05f) abyssWhite else abyssOrange)
+        drawSphere(0.86f, 3.10f, -0.16f, rightR)
+        abyssColor(abyssWhite)
+        drawBone(-0.93f, 2.93f, -0.16f, -0.79f, 2.93f, -0.16f, 0.018f, 0.018f)
+        drawBone(-0.86f, 2.93f, -0.23f, -0.86f, 2.93f, -0.09f, 0.018f, 0.018f)
+        drawBone(0.79f, 2.93f, -0.16f, 0.93f, 2.93f, -0.16f, 0.018f, 0.018f)
+
+        // Indicador de ar: cinco pontos, preenchidos conforme o volume da bolsa.
+        for (i in 0 until 5) {
+            abyssColor(if (abyssAirLevel >= (i + 1) / 5f) abyssBlue else abyssRock)
+            drawSphere(1.35f, 3.55f, -0.18f + i * 0.16f, 0.045f)
+        }
+        abyssColor(abyssWhite)
+        drawSphere(0f, 2.35f, 0f, 0.018f)  // mira central discreta
     }
 
     private fun drawRoom() {
@@ -1539,90 +1714,6 @@ class VrRenderer(
         for (sx in floatArrayOf(-4.3f, 4.3f)) {
             box(sx, 3.6f, floorZ, 0.07f, 0.07f, 2.1f, cPole)
             box(sx, 3.6f, floorZ + 2.1f, 0.38f, 0.38f, 0.38f, cLampHead, 8f)
-        }
-
-        // Mesa de xadrez à frente do usuário e perto o suficiente para alcançar sem locomoção virtual.
-        drawChessTable()
-    }
-
-    /** Tabuleiro e 32 peças leves. O tabuleiro usa um único plano com padrão no shader para poupar draw calls. */
-    private fun drawChessTable() {
-        val cy = 0.85f
-        val topZ = floorZ + 0.99f
-        val boardSize = 1.16f
-        val cell = boardSize / 8f
-        // quatro pés e tampo
-        for (sx in floatArrayOf(-0.66f, 0.66f)) for (sy in floatArrayOf(-0.66f, 0.66f)) {
-            box(sx, cy + sy, floorZ + 0.42f, 0.085f, 0.085f, 0.84f, cChessTable)
-        }
-        box(0f, cy, floorZ + 0.88f, 1.58f, 1.58f, 0.12f, cChessTable)
-        // moldura e tabuleiro
-        box(0f, cy, topZ - 0.025f, 1.30f, 1.30f, 0.035f, cChessTable)
-        GLES20.glUseProgram(roomProg)
-        basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f, cy, topZ, boardSize, boardSize)
-        quadRoom(cChessBoard, 9f, boardSize, boardSize)
-
-        // Peças em posição inicial. A coluna central separa as peças claras e escuras.
-        GLES20.glUseProgram(handProg)
-        GLES20.glUniformMatrix4fv(hVP, 1, false, vp, 0)
-        GLES20.glUniform3f(hEye, st.headX, st.headY, st.headZ)
-        GLES20.glUniform1f(hTaper, 1f)
-        GLES20.glEnableVertexAttribArray(hPos)
-        GLES20.glEnableVertexAttribArray(hNrm)
-        val back = charArrayOf('r', 'n', 'b', 'q', 'k', 'b', 'n', 'r')
-        for (row in 0..7) for (col in 0..7) {
-            val type = when (row) {
-                0 -> back[col]
-                1 -> 'p'
-                6 -> 'P'
-                7 -> back[col].uppercaseChar()
-                else -> continue
-            }
-            val white = type.isUpperCase()
-            val x = (col - 3.5f) * cell
-            val y = cy + (row - 3.5f) * cell
-            drawChessPiece(x, y, topZ + 0.006f, type.lowercaseChar(), white, cell)
-        }
-        GLES20.glUseProgram(roomProg)
-    }
-
-    /** Peças estilizadas em cilindros/esferas de baixa contagem de polígonos (adequadas ao celular). */
-    private fun drawChessPiece(x: Float, y: Float, z: Float, type: Char, white: Boolean, cell: Float) {
-        val color = if (white) cChessWhite else cChessBlack
-        GLES20.glUniform4fv(hColor, 1, color, 0)
-        val baseR = cell * 0.34f
-        drawBone(x, y, z, x, y, z + 0.025f, baseR, baseR * 0.88f)
-        val bodyTop = z + 0.13f
-        drawBone(x, y, z + 0.02f, x, y, bodyTop, baseR * 0.58f, baseR * 0.36f)
-        when (type) {
-            'p' -> drawSphere(x, y, bodyTop + 0.022f, cell * 0.15f)
-            'r' -> {
-                drawBone(x, y, bodyTop - 0.005f, x, y, bodyTop + 0.045f, cell * 0.30f, cell * 0.30f)
-                val d = cell * 0.22f
-                for (sx in floatArrayOf(-d, d)) for (sy in floatArrayOf(-d, d))
-                    drawSphere(x + sx, y + sy, bodyTop + 0.06f, cell * 0.075f)
-            }
-            'n' -> {
-                val dir = if (white) -1f else 1f
-                drawBone(x, y, bodyTop - 0.015f, x, y + dir * cell * 0.28f, bodyTop + 0.085f, cell * 0.23f, cell * 0.16f)
-                drawSphere(x, y + dir * cell * 0.30f, bodyTop + 0.09f, cell * 0.16f)
-                drawSphere(x, y + dir * cell * 0.40f, bodyTop + 0.075f, cell * 0.075f)
-            }
-            'b' -> {
-                drawSphere(x, y, bodyTop + 0.04f, cell * 0.16f)
-                drawBone(x, y, bodyTop + 0.10f, x, y, bodyTop + 0.15f, cell * 0.055f, cell * 0.04f)
-            }
-            'q' -> {
-                drawSphere(x, y, bodyTop + 0.055f, cell * 0.18f)
-                val d = cell * 0.21f
-                for (sx in floatArrayOf(-d, d)) for (sy in floatArrayOf(-d, d))
-                    drawSphere(x + sx, y + sy, bodyTop + 0.10f, cell * 0.065f)
-            }
-            'k' -> {
-                drawSphere(x, y, bodyTop + 0.045f, cell * 0.15f)
-                drawBone(x, y, bodyTop + 0.09f, x, y, bodyTop + 0.20f, cell * 0.045f, cell * 0.035f)
-                drawBone(x - cell * 0.13f, y, bodyTop + 0.16f, x + cell * 0.13f, y, bodyTop + 0.16f, cell * 0.035f, cell * 0.035f)
-            }
         }
     }
 
@@ -1710,17 +1801,25 @@ class VrRenderer(
                 int mode = int(uMode + 0.5);
 
                 if (mode == 8) { gl_FragColor = uColor; return; }
-                if (mode == 9) {                         // tabuleiro de xadrez: um único plano, oito casas por lado
-                    vec2 cell = floor((vPos + 0.5) * 8.0);
-                    float dark = mod(cell.x + cell.y, 2.0);
-                    vec3 lightSq = vec3(0.84, 0.70, 0.50);
-                    vec3 darkSq = vec3(0.16, 0.19, 0.23);
-                    vec3 board = mix(lightSq, darkSq, dark);
-                    float edge = max(abs(vPos.x), abs(vPos.y));
-                    if (edge > 0.492) board *= 0.70;
-                    vec3 dvBoard = vW - uLight.xyz;
-                    float litBoard = uLight.w / (1.0 + 0.18 * dot(dvBoard, dvBoard));
-                    gl_FragColor = vec4(board * (0.55 + litBoard * vec3(0.75, 0.90, 1.05)), 1.0);
+
+                if (mode == 9) {                         // gradiente do oceano em 360 graus
+                    float h = clamp(vPos.y + 0.5, 0.0, 1.0);
+                    vec3 deep = vec3(0.006, 0.055, 0.14);
+                    vec3 mid  = vec3(0.015, 0.25, 0.39);
+                    vec3 top  = vec3(0.10, 0.55, 0.68);
+                    vec3 sky = mix(deep, mid, smoothstep(0.0, 0.72, h));
+                    sky = mix(sky, top, smoothstep(0.60, 1.0, h) * 0.75);
+                    float rays = pow(max(0.0, sin((vPos.x + 0.32) * 7.0 + vPos.y * 2.5)), 12.0);
+                    sky += vec3(0.05, 0.16, 0.18) * rays * smoothstep(0.15, 0.95, h);
+                    gl_FragColor = vec4(sky, 1.0);
+                    return;
+                }
+                if (mode == 10) {                        // areia com granulação procedural leve
+                    float grain = hash(floor(m * 32.0));
+                    float ripple = 0.5 + 0.5 * sin(m.x * 2.4 + sin(m.y * 1.7) * 1.3);
+                    vec3 sand = mix(vec3(0.32, 0.27, 0.18), vec3(0.55, 0.46, 0.30), grain);
+                    sand *= 0.90 + ripple * 0.14;
+                    gl_FragColor = vec4(sand, 1.0);
                     return;
                 }
 

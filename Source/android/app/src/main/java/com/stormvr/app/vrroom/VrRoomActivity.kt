@@ -69,6 +69,7 @@ class VrRoomActivity : Activity() {
 
     companion object {
         const val EXTRA_TRACK_ONLY = "trackonly"
+        const val EXTRA_ABYSS_MODE = "abyss_mode"
 
         private const val DESKTOP_UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -107,6 +108,7 @@ class VrRoomActivity : Activity() {
     @Volatile private var currentUrl = ""
 
     private var vrMode = false
+    private var abyssMode = false
 
     // mãos (MediaPipe)
     private var tracker: HandTracker? = null
@@ -263,6 +265,21 @@ class VrRoomActivity : Activity() {
         }
 
         loadPrefs()
+        abyssMode = intent.getBooleanExtra(EXTRA_ABYSS_MODE, false)
+        if (abyssMode) {
+            // O protótipo usa só o giroscópio e o renderizador estéreo já existente no StormVR.
+            // Não precisa de câmera, ARCore, rastreamento de mãos ou conexão com PC.
+            state.abyssMode = true
+            state.stereo = true
+            state.sixDof = false
+            state.handsOn = false
+            state.handLasers = false
+            state.passthrough = false
+            state.fullscreen = false
+            state.lite = true
+            state.recenter = true
+            // FOV e distorção k1/k2 continuam usando os ajustes salvos pelo usuário para o VR Box.
+        }
         renderer = VrRenderer(this, state, ui) { s -> runOnUiThread { onTexSurface(s) } }
         glView = GLSurfaceView(this).apply {
             setOnTouchListener { _, ev -> if (vrMode && state.fullscreen) { forwardFullscreenTouch(ev); true } else if (vrMode && fingerCtl) { fingerTouch(ev); true } else false }
@@ -272,7 +289,7 @@ class VrRoomActivity : Activity() {
             renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
             visibility = View.GONE
         }
-        startPanel = buildStartPanel()
+        startPanel = if (abyssMode) buildAbyssStartPanel() else buildStartPanel()
 
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(16, 16, 22))
@@ -286,6 +303,14 @@ class VrRoomActivity : Activity() {
                                else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE   // travada: sem rotação automática
         state.rotation = fixedRotation()
         state.sixDof = com.stormvr.app.Prefs(this).sixDof          // 3DoF/6DoF: uma escolha só, na tela inicial
+        if (abyssMode) {
+            state.sixDof = false
+            state.handsOn = false
+            state.handLasers = false
+            state.passthrough = false
+            state.stereo = true
+            state.lite = true
+        }
         state.predMs = com.stormvr.app.Prefs(this).predictionMs.toFloat()
         state.headHz = com.stormvr.app.Prefs(this).rateHz.coerceIn(50, 120)
         state.pinchSmooth = getSharedPreferences("vrroom", Context.MODE_PRIVATE).getFloat("pinchsmooth", 0.5f).coerceIn(0f, 1f)
@@ -298,7 +323,7 @@ class VrRoomActivity : Activity() {
             state.pcMode = true
             glView.post { enterVr(true) }
         }
-        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        if (!abyssMode && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.CAMERA), 77)
         }
     }
@@ -358,6 +383,64 @@ class VrRoomActivity : Activity() {
     override fun onBackPressed() {
         if (trackSession) { exitVr(); finish(); return }
         if (vrMode) exitVr() else super.onBackPressed()
+    }
+
+    // =================================================================== início do protótipo escolar
+    private fun buildAbyssStartPanel(): LinearLayout {
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(28), dp(24), dp(28), dp(24))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(3, 25, 58), Color.rgb(0, 83, 112), Color.rgb(3, 31, 62))).apply {
+                cornerRadius = dp(22).toFloat()
+            }
+        }
+        panel.addView(TextView(this).apply {
+            text = "OPERAÇÃO ABISMO"
+            textSize = 29f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
+        })
+        panel.addView(TextView(this).apply {
+            text = "PROTÓTIPO 01  •  PRINCÍPIO DE ARQUIMEDES"
+            textSize = 13f
+            setTextColor(Color.rgb(113, 226, 236))
+            gravity = Gravity.CENTER
+            setPadding(0, dp(5), 0, dp(18))
+        })
+        panel.addView(TextView(this).apply {
+            text = """Você está vendo uma simulação submarina em primeira pessoa.
+
+Olhe para a esfera AZUL para adicionar ar à bolsa de flutuação.
+Olhe para a esfera LARANJA para liberar ar.
+
+Mantenha o olhar no controle por cerca de 1,2 segundo. A bolsa maior desloca mais água e aumenta o empuxo. Ajuste o ar até alinhar a cápsula de resgate dentro do aro.
+
+No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
+            textSize = 15f
+            setTextColor(Color.rgb(230, 245, 250))
+            gravity = Gravity.CENTER
+            setLineSpacing(dp(3).toFloat(), 1f)
+            setPadding(dp(14), dp(6), dp(14), dp(18))
+        })
+        panel.addView(Button(this).apply {
+            text = "INICIAR MERGULHO"
+            textSize = 17f
+            isAllCaps = false
+            setTextColor(Color.WHITE)
+            background = com.stormvr.app.Ui.gradient(this@VrRoomActivity, 18)
+            setOnClickListener { enterVr() }
+        }, LinearLayout.LayoutParams(dp(280), dp(54)).apply { gravity = Gravity.CENTER })
+        panel.addView(TextView(this).apply {
+            text = "Protótipo experimental — cenário e interação em desenvolvimento"
+            textSize = 11f
+            setTextColor(Color.rgb(165, 198, 210))
+            gravity = Gravity.CENTER
+            setPadding(0, dp(14), 0, 0)
+        })
+        return panel
     }
 
     // =================================================================== tela inicial (no celular)
@@ -819,7 +902,6 @@ class VrRoomActivity : Activity() {
                 mediaPlaybackRequiresUserGesture = false
                 useWideViewPort = false
                 loadWithOverviewMode = false
-                textZoom = 130 // texto 30% maior para facilitar a leitura dentro do visor VR
                 userAgentString = DESKTOP_UA
                 setSupportZoom(true)                  // pinça com dois controles/dedos dá zoom na página
                 builtInZoomControls = true
@@ -938,8 +1020,10 @@ class VrRoomActivity : Activity() {
     private fun enterVr(fullscreen: Boolean = false) {
         state.fullscreen = fullscreen
         if (!renderer.hasSensor && !fullscreen) toast("Este aparelho não tem sensor de rotação (giroscópio).")
-        homeUrl = normalizeUrl(urlField.text.toString())
-        if (currentUrl.isEmpty()) currentUrl = homeUrl
+        if (!abyssMode) {
+            homeUrl = normalizeUrl(urlField.text.toString())
+            if (currentUrl.isEmpty()) currentUrl = homeUrl
+        }
         vrMode = true
         applyExtras(); extras?.recenter()
         startPanel.visibility = View.GONE
@@ -948,7 +1032,7 @@ class VrRoomActivity : Activity() {
         applyImmersive(true)
         state.recenter = true
         if (!fullscreen) {
-            startHub()
+            if (!abyssMode) startHub()
             renderer.startSensors()
             startAr()
         } else if (state.pcMode) {                         // tela cheia + modo PC: só cabeça e mãos (sem controles na tela)
@@ -956,7 +1040,7 @@ class VrRoomActivity : Activity() {
             startAr()
             if (com.stormvr.app.Prefs(this).btForward) startHub()      // controles Bluetooth -> PC mesmo sem a sala
         }                                                  // tela cheia comum = só a página com toque direto
-        startPcLink()
+        if (!abyssMode) startPcLink()
         lastFrameNs = 0L
         Choreographer.getInstance().postFrameCallback(frameCb)
     }
@@ -969,7 +1053,9 @@ class VrRoomActivity : Activity() {
         state.fullscreen = false
         val diag = tracker?.info()
         stopAr()
-        diagLabel.text = if (diag != null) "Último diagnóstico das mãos: $diag" else ""
+        if (!abyssMode && ::diagLabel.isInitialized) {
+            diagLabel.text = if (diag != null) "Último diagnóstico das mãos: $diag" else ""
+        }
         Log.i("VRRoom", "diag mãos: $diag")
         Choreographer.getInstance().removeFrameCallback(frameCb)
         renderer.stopSensors()
@@ -1450,12 +1536,6 @@ class VrRoomActivity : Activity() {
         }
         val l1 = "GL ${state.glFps} fps  |  ARCore: $ar  |  Mãos: $hs"
         var l2 = tracker?.info() ?: "tracker não iniciado"
-        val gestureText = synchronized(state.handLock) {
-            val left = if (state.handValid[0]) "E: ${HandGesture.label(state.handGesture[0])}" else "E: —"
-            val right = if (state.handValid[1]) "D: ${HandGesture.label(state.handGesture[1])}" else "D: —"
-            "$left  $right"
-        }
-        l2 += " | gestos: $gestureText"
         if (renderer.camErr.isNotEmpty()) l2 += " | ${renderer.camErr}"
         if (renderer.arErr.isNotEmpty()) l2 += " | erro AR: ${renderer.arErr}"
         val sig = l1 + l2
@@ -1587,7 +1667,6 @@ class VrRoomActivity : Activity() {
             var pinch = false
             var closing = false
             var ratio = 1f
-            var gesture = HandGesture.NONE
             var px = 0f
             var py = 0f
             var pz = 0f
@@ -1598,16 +1677,10 @@ class VrRoomActivity : Activity() {
                         pinch = s.handPinch[i]
                         closing = s.handClosing[i]
                         ratio = s.handRatio[i]
-                        gesture = s.handGesture[i]
                         val p = s.handPts[i]
-                        if (gesture == HandGesture.POINT) {
-                            // Apontar move o cursor pela ponta do indicador; pinça continua sendo o clique.
-                            px = p[24]; py = p[25]; pz = p[26]
-                        } else {
-                            px = (p[12] + p[24]) * 0.5f
-                            py = (p[13] + p[25]) * 0.5f
-                            pz = (p[14] + p[26]) * 0.5f
-                        }
+                        px = (p[12] + p[24]) * 0.5f      // meio da pinça (pontas do polegar e do indicador)
+                        py = (p[13] + p[25]) * 0.5f
+                        pz = (p[14] + p[26]) * 0.5f
                     }
                 }
             }
@@ -1751,15 +1824,13 @@ class VrRoomActivity : Activity() {
             val v = ((g.cz + g.h / 2f) - tz) / g.h
             val inside = u in 0f..1f && v in 0f..1f
             val idx = if (inside) ui.keyAt(u, v) else -1
-            // Faixa de proximidade mais generosa: a câmera do celular tem alguma variação de profundidade.
-            if (inside && idx >= 0 && front > -0.10f && front < 0.18f) ui.kbHov[i] = idx
+            if (inside && idx >= 0 && front > -0.05f && front < 0.12f) ui.kbHov[i] = idx   // realça a tecla sob o dedo
             if (!pokeDown[i]) {
-                // O dedo precisa vir de fora e atravessar a zona de toque; a margem evita repetição por tremor.
-                if (idx >= 0 && front < 0.035f && front > -0.12f && pokeFront[i] > 0.035f) {
+                if (idx >= 0 && front < 0.015f && front > -0.06f && pokeFront[i] > 0.03f) {
                     pokeDown[i] = true
                     pressKey(idx)
                 }
-            } else if (front > 0.085f || !inside) {
+            } else if (front > 0.045f || !inside) {
                 pokeDown[i] = false
             }
             pokeFront[i] = front

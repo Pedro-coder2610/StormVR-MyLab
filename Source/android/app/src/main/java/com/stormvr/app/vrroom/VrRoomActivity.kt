@@ -267,13 +267,14 @@ class VrRoomActivity : Activity() {
         loadPrefs()
         abyssMode = intent.getBooleanExtra(EXTRA_ABYSS_MODE, false)
         if (abyssMode) {
-            // O protótipo usa só o giroscópio e o renderizador estéreo já existente no StormVR.
-            // Não precisa de câmera, ARCore, rastreamento de mãos ou conexão com PC.
+            // A cabeça continua no giroscópio (3DoF); a câmera/ARCore é usada somente para rastrear a mão.
+            // Mantém uma mão e o modo leve para limitar o consumo no celular.
             state.abyssMode = true
             state.stereo = true
             state.sixDof = false
-            state.handsOn = false
+            state.handsOn = true
             state.handLasers = false
+            state.twoHands = false
             state.passthrough = false
             state.fullscreen = false
             state.lite = true
@@ -305,8 +306,9 @@ class VrRoomActivity : Activity() {
         state.sixDof = com.stormvr.app.Prefs(this).sixDof          // 3DoF/6DoF: uma escolha só, na tela inicial
         if (abyssMode) {
             state.sixDof = false
-            state.handsOn = false
+            state.handsOn = true
             state.handLasers = false
+            state.twoHands = false
             state.passthrough = false
             state.stereo = true
             state.lite = true
@@ -336,7 +338,8 @@ class VrRoomActivity : Activity() {
             } else {
                 state.sixDof = false
                 state.handsOn = false
-                toast("Sem permissão da câmera: 6DoF e mãos desativados (só rotação).")
+                if (abyssMode) toast("Sem câmera: controle por pinça indisponível; use o olhar nas válvulas.")
+                else toast("Sem permissão da câmera: 6DoF e mãos desativados (só rotação).")
             }
         } else if (code == 78) {
             if (vrMode && BleController.hasPermission(this)) BleController.start(applicationContext)
@@ -413,12 +416,14 @@ class VrRoomActivity : Activity() {
         panel.addView(TextView(this).apply {
             text = """Você está vendo uma simulação submarina em primeira pessoa.
 
-Olhe para a esfera AZUL para adicionar ar à bolsa de flutuação.
-Olhe para a esfera LARANJA para liberar ar.
+Olhe para a esfera AZUL e faça uma pinça com polegar e indicador para adicionar ar.
+Olhe para a esfera LARANJA e faça uma pinça para liberar ar.
 
-Mantenha o olhar no controle por cerca de 1,2 segundo. A bolsa maior desloca mais água e aumenta o empuxo. Ajuste o ar até alinhar a cápsula de resgate dentro do aro.
+A mão é estabilizada pelo rastreador. Se preferir, ou se a câmera não detectar sua mão, mantenha o olhar na válvula por cerca de 1,2 segundo para acioná-la.
 
-No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
+A bolsa maior desloca mais água e aumenta o empuxo. Ajuste o ar até alinhar a cápsula de resgate dentro do aro.
+
+Ao iniciar, permita o uso da câmera para o rastreamento das mãos. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f
             setTextColor(Color.rgb(230, 245, 250))
             gravity = Gravity.CENTER

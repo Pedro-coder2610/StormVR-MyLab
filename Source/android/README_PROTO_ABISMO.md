@@ -1,53 +1,24 @@
-# Operação Abismo VR — Protótipo 01
+# Operação Abismo VR — integração com mãos estabilizadas
 
-Este protótipo adiciona um modo experimental ao aplicativo StormVR existente. O modo é iniciado pelo atalho **Abismo VR** na tela inicial e reutiliza o `VrRenderer` e o rastreamento 3DoF por giroscópio do projeto.
+O modo Abismo reutiliza o renderizador estéreo do StormVR, o giroscópio e o rastreador MediaPipe/One Euro.
 
-## O que já está incluído
+## Controles
 
-- Cena submarina 3D procedural (sem baixar modelos externos): gradiente de água, fundo arenoso, rochas, algas, corais, peixes e bolhas.
-- Renderização estereoscópica lado a lado para uso em um visor passivo tipo VR Box.
-- Rastreamento da orientação da cabeça pelo giroscópio já implementado no StormVR.
-- Duas válvulas selecionáveis pelo olhar: azul adiciona ar; laranja libera ar.
-- Seleção por permanência do olhar por aproximadamente 1,2 segundo. É preciso desviar o olhar para rearmar a válvula.
-- Uma cápsula de resgate sobe ou desce conforme o nível de ar. O aro fica verde quando ela atinge a faixa de equilíbrio.
-- O modo Abismo não solicita câmera, não inicializa ARCore nem inicia os controles Bluetooth/ligação com PC.
+- Com as mãos visíveis, aponte com o indicador para a esquerda para selecionar a válvula azul (adicionar ar) ou para a direita para selecionar a válvula laranja (liberar ar).
+- Faça uma pinça com polegar e indicador para confirmar a válvula.
+- Abra a mão ou pare de apontar para soltar a seleção e permitir outro comando.
+- As duas mãos voltam a ser desenhadas na cena. A cor muda conforme o gesto: mão aberta (ciano), apontando (amarelo), punho fechado (coral), pinça (verde) e positivo (lilás); em repouso, esquerda azul-gelo e direita coral.
+- Sem câmera ou sem mão detectada, mantenha o olhar sobre a válvula por aproximadamente 1,2 segundo como alternativa.
+- A cabeça continua sendo orientada pelo giroscópio; a câmera é usada para rastrear as mãos, não para 6DoF da cabeça.
 
-## Como testar no Android Studio
+## Objetivo físico
 
-1. Extraia o ZIP do projeto.
-2. No Android Studio, use **File > Open** e selecione somente a pasta `Source/android`.
-3. Aguarde o Gradle Sync. O projeto precisa baixar dependências Maven na primeira sincronização; use internet.
-4. Ative as opções de desenvolvedor e a depuração USB no Android.
-5. Conecte o Galaxy A35 por USB, autorize o computador e selecione o aparelho no Android Studio.
-6. Use **Build > Build Bundle(s) / APK(s) > Build APK(s)** ou pressione Run para instalar diretamente.
-7. Abra o StormVR e toque no atalho **Abismo VR**.
-8. Toque em **Iniciar mergulho**. Coloque o telefone na horizontal dentro do VR Box.
+A cápsula de resgate deve ficar alinhada ao aro. A bolsa maior desloca mais água e aumenta o empuxo; reduza o ar para diminuir a flutuabilidade. O protótipo mantém uma simulação qualitativa, não um solucionador de forças calibrado.
 
-O projeto original não inclui os scripts `gradlew`/`gradlew.bat` nem o JAR do Gradle Wrapper; abra pelo Android Studio e deixe a IDE configurar a distribuição Gradle do projeto. O Android SDK 34 e as dependências do projeto devem estar instalados/baixados.
+## Mesa de xadrez
 
-## Controles dentro da cena
+A mesa 3D de xadrez fica na **Sala VR** (não dentro do cenário submarino), à frente do jogador, com as 32 peças na posição inicial. Ela é uma peça de cenário/teste de gestos nesta versão, ainda não um tabuleiro com regras e partidas jogáveis.
 
-- Olhe para a esfera azul à esquerda e mantenha o olhar: adiciona ar à bolsa de flutuação.
-- Olhe para a esfera laranja à direita e mantenha o olhar: libera ar.
-- Após cada acionamento, olhe para longe das válvulas para poder acioná-las novamente.
-- Objetivo: ajustar a bolsa até a cápsula ficar dentro do aro. Quando o aro ficar verde, a cápsula está na posição de equilíbrio simulada.
-- Use o botão Voltar do Android para sair do modo VR.
+## Desempenho e compatibilidade
 
-## Modelo físico e limites desta versão
-
-A cena demonstra qualitativamente o Princípio de Arquimedes: aumentar o volume da bolsa de ar aumenta o volume de água deslocado e, portanto, o empuxo. Nesta primeira versão, a posição vertical da cápsula é uma simulação simplificada controlada pelo nível de ar; ainda não é um solucionador físico quantitativo de forças, massa, densidade da água e aceleração. O objetivo deste protótipo é validar a cena, o rastreamento e a interação no telefone/VR Box antes de aprofundar a simulação.
-
-A qualidade do alinhamento entre as duas imagens, o FOV e a distorção depende do VR Box e das configurações de lente do StormVR. As configurações de distorção `k1/k2` salvas pelo usuário são preservadas. Teste primeiro em baixa duração e ajuste a separação/FOV nas configurações do StormVR, se necessário.
-
-## Estado de validação
-
-Esta cópia foi integrada e revisada estaticamente, mas **não foi possível compilar o APK nem testar no Galaxy A35 neste ambiente**, pois não há Android SDK/Gradle instalado aqui. O primeiro teste precisa ser feito no Android Studio e no aparelho real. Se ocorrer erro de compilação ou renderização, envie o texto do erro ou uma captura de tela para corrigirmos em cima dele.
-
-## Arquivos principais alterados
-
-- `app/src/main/java/com/stormvr/app/MainActivity.kt` — atalho Abismo VR.
-- `app/src/main/java/com/stormvr/app/vrroom/VrRoomActivity.kt` — tela de instruções e inicialização isolada do modo Abismo.
-- `app/src/main/java/com/stormvr/app/vrroom/VrRenderer.kt` — cenário submarino, válvulas por olhar e simulação da flutuabilidade.
-- `app/src/main/java/com/stormvr/app/vrroom/VrState.kt` — flag do modo Abismo.
-
-O restante do StormVR foi mantido na cópia do projeto. A licença original GPL-3.0 e seus avisos permanecem no projeto.
+O modo Abismo usa rastreamento de duas mãos a 20 fps e renderização leve para equilibrar a fluidez no celular. A qualidade real depende da iluminação, distância das mãos, temperatura e desempenho do aparelho. Teste no Galaxy A35/VR Box depois de compilar o APK.

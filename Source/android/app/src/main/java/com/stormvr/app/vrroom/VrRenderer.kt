@@ -1847,7 +1847,7 @@ class VrRenderer(
         drawAbyssGauge(1.27f, 1.47f, 0.02f, 0.31f, pressureGauge, abyssCoral2)
         // Reserva de oxigênio mostrada como barra de LEDs enquanto a missão narrativa é definida.
         for (i in 0 until 8) {
-            abyssColor(if (i < 8) abyssRingOk else abyssRock)
+            abyssColor(if (i < ballastGauge * 8f) abyssBlue else abyssRock)
             drawSphere(-0.28f + i * 0.08f, 1.46f, 0.56f, 0.022f)
         }
 

@@ -1170,6 +1170,32 @@ class VrRenderer(
         drawMesh(sphBuf, sphVerts)
     }
 
+    private fun drawEllipsoid(x: Float, y: Float, z: Float, rx: Float, ry: Float, rz: Float) {
+        GLES20.glUniform1f(hTaper, 1f)
+        basis(rx, 0f, 0f, 0f, ry, 0f, 0f, 0f, rz, x, y, z, 1f, 1f)
+        drawMesh(sphBuf, sphVerts)
+    }
+
+    private fun drawAbyssFish(x: Float, y: Float, z: Float, scale: Float, color: FloatArray) {
+        abyssColor(color)
+        drawEllipsoid(x, y, z, 0.30f * scale, 0.14f * scale, 0.15f * scale)
+        drawEllipsoid(x + 0.23f * scale, y + 0.015f * scale, z + 0.015f * scale,
+            0.10f * scale, 0.11f * scale, 0.11f * scale)
+        // Cauda bifurcada e nadadeiras dão silhueta de peixe, em vez de esfera com um traço.
+        drawBone(x - 0.25f * scale, y, z, x - 0.46f * scale, y, z + 0.15f * scale,
+            0.075f * scale, 0.012f * scale)
+        drawBone(x - 0.25f * scale, y, z, x - 0.46f * scale, y, z - 0.15f * scale,
+            0.075f * scale, 0.012f * scale)
+        drawBone(x - 0.02f * scale, y, z + 0.11f * scale, x - 0.10f * scale, y, z + 0.22f * scale,
+            0.045f * scale, 0.008f * scale)
+        drawBone(x - 0.02f * scale, y, z - 0.11f * scale, x - 0.10f * scale, y, z - 0.20f * scale,
+            0.040f * scale, 0.008f * scale)
+        abyssColor(abyssWhite)
+        drawSphere(x + 0.27f * scale, y + 0.105f * scale, z + 0.055f * scale, 0.025f * scale)
+        abyssColor(abyssRock)
+        drawSphere(x + 0.285f * scale, y + 0.125f * scale, z + 0.055f * scale, 0.012f * scale)
+    }
+
     private fun drawBone(
         ax: Float, ay: Float, az: Float, bx: Float, by: Float, bz: Float,
         r0: Float, r1: Float
@@ -1567,19 +1593,18 @@ class VrRenderer(
         val targetLen = sqrt(targetX * targetX + targetY * targetY + targetZ * targetZ)
         val leftDot = (nx * -targetX + ny * targetY + nz * targetZ) / targetLen
         val rightDot = (nx * targetX + ny * targetY + nz * targetZ) / targetLen
+        // O alvo de olhar precisa tolerar a pequena imprecisão do giroscópio no VR Box.
         val gazeSelected = when {
-            gn > 0.2f && leftDot > 0.992f -> 1
-            gn > 0.2f && rightDot > 0.992f -> 2
+            gn > 0.2f && leftDot > 0.978f -> 1
+            gn > 0.2f && rightDot > 0.978f -> 2
             else -> 0
         }
 
-        var anyHandVisible = false
         var handSelected = 0
         var handPinching = false
         synchronized(st.handLock) {
             for (h in 0..1) {
                 if (!st.handValid[h]) continue
-                anyHandVisible = true
                 val gesture = st.handGesture[h]
                 if (gesture != HandGesture.POINT && gesture != HandGesture.PINCH) continue
                 val p = st.handPts[h]
@@ -1593,11 +1618,14 @@ class VrRenderer(
             }
         }
 
-        val usingHands = anyHandVisible
+        // Uma mão aberta/relaxada não pode bloquear o controle alternativo pelo olhar.
+        // O modo mãos só assume o controle quando há gesto válido apontando para uma válvula.
+        val usingHands = handSelected != 0
         val selected = if (usingHands) handSelected else gazeSelected
-        val pinching = usingHands && handSelected != 0 && handPinching
+        val pinching = usingHands && handPinching
         val pinchPressed = pinching && !abyssPinchHeld
         abyssPinchHeld = pinching
+        if (usingHands && !pinching) abyssLookArmed = true
 
         if (selected == 0) {
             abyssLookTarget = 0
@@ -1652,18 +1680,23 @@ class VrRenderer(
         val podZ = abyssPodHeight
         val aligned = abs(podZ) < 0.13f && abs(abyssPodVelocity) < 0.10f
 
-        // Céu submarino em 360 graus, com fundo de areia.
+        // Oceano em cilindro facetado: o horizonte não deve parecer uma caixa com quatro paredes.
         GLES20.glUseProgram(roomProg)
-        basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f, 0f, 16f, 1f, 40f, 24f)
-        quadRoom(abyssWhite, 9f, 40f, 24f)
-        basis(-1f, 0f, 0f, 0f, 0f, 1f, 0f, 1f, 0f, 0f, -16f, 1f, 40f, 24f)
-        quadRoom(abyssWhite, 9f, 40f, 24f)
-        basis(0f, 1f, 0f, 0f, 0f, 1f, 1f, 0f, 0f, 18f, 0f, 1f, 32f, 24f)
-        quadRoom(abyssWhite, 9f, 32f, 24f)
-        basis(0f, -1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f, -18f, 0f, 1f, 32f, 24f)
-        quadRoom(abyssWhite, 9f, 32f, 24f)
-        basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, -1f, 0f, 0f, 10f, 40f, 32f)
-        quadRoom(abyssWhite, 9f, 40f, 32f)
+        val oceanRadius = 19f
+        val oceanSegments = 28
+        val twoPi = (2f * PI).toFloat()
+        for (i in 0 until oceanSegments) {
+            val a = (i + 0.5f) * twoPi / oceanSegments
+            val ca = cos(a)
+            val sa = sin(a)
+            val panelWidth = oceanRadius * twoPi / oceanSegments
+            basis(-sa, ca, 0f, 0f, 0f, 1f, ca, sa, 0f,
+                ca * oceanRadius, sa * oceanRadius, 0f, panelWidth, 24f)
+            quadRoom(abyssWhite, 9f, panelWidth, 24f)
+        }
+        // Superfície iluminada acima e leito arenoso abaixo.
+        basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f, 0f, 11.5f, 40f, 40f)
+        quadRoom(floatArrayOf(0.18f, 0.66f, 0.78f, 1f), 8f, 40f, 40f)
         basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f, 6f, -3.2f, 40f, 34f)
         quadRoom(abyssWhite, 10f, 40f, 34f)
 
@@ -1707,16 +1740,15 @@ class VrRenderer(
         drawSphere(1.48f, 5.72f, -1.65f, 0.055f)
         drawSphere(2.32f, 5.68f, -1.50f, 0.055f)
 
-        // Peixes simples passam ao longe.
+        // Cardume em duas profundidades, com corpo, cauda, nadadeiras e olhos.
         val fishX = 1.35f + sin((t * 0.45f).toDouble()).toFloat() * 0.55f
-        val fishY = 8.7f + cos((t * 0.30f).toDouble()).toFloat() * 0.35f
-        val fishZ = 1.05f + sin((t * 0.6f).toDouble()).toFloat() * 0.12f
-        abyssColor(floatArrayOf(1f, 0.72f, 0.30f, 1f))
-        drawSphere(fishX, fishY, fishZ, 0.16f)
-        drawBone(fishX - 0.13f, fishY + 0.02f, fishZ, fishX - 0.29f, fishY + 0.02f, fishZ + 0.08f, 0.06f, 0.008f)
-        abyssColor(abyssWhite)
-        drawSphere(-fishX - 1.0f, fishY + 3.0f, fishZ - 0.5f, 0.12f)
-        drawBone(-fishX - 0.9f, fishY + 3.0f, fishZ - 0.5f, -fishX - 0.76f, fishY + 3.0f, fishZ - 0.42f, 0.045f, 0.006f)
+        val fishY = 7.7f + cos((t * 0.30f).toDouble()).toFloat() * 0.35f
+        val fishZ = 0.95f + sin((t * 0.6f).toDouble()).toFloat() * 0.12f
+        drawAbyssFish(fishX, fishY, fishZ, 1f, floatArrayOf(1f, 0.62f, 0.24f, 1f))
+        val fish2X = -1.7f + sin((t * 0.34f + 1.2f).toDouble()).toFloat() * 0.38f
+        val fish2Y = 9.0f + cos((t * 0.25f + 0.7f).toDouble()).toFloat() * 0.30f
+        val fish2Z = 0.35f + sin((t * 0.48f + 1f).toDouble()).toFloat() * 0.10f
+        drawAbyssFish(fish2X, fish2Y, fish2Z, 0.72f, floatArrayOf(0.18f, 0.78f, 0.84f, 1f))
 
         // Bolhas ascendentes.
         abyssColor(floatArrayOf(0.50f, 0.90f, 1.00f, 0.65f))
@@ -1768,16 +1800,34 @@ class VrRenderer(
 
         // Válvulas flutuantes: olhar e manter por 1,2 s. Os símbolos distinguem as ações.
         val progress = abyssDwellProgress
-        val leftR = 0.18f + if (abyssLookTarget == 1) progress * 0.045f else 0f
-        val rightR = 0.18f + if (abyssLookTarget == 2) progress * 0.045f else 0f
+        val leftR = 0.20f + if (abyssLookTarget == 1) progress * 0.09f else 0f
+        val rightR = 0.20f + if (abyssLookTarget == 2) progress * 0.09f else 0f
         abyssColor(if (abyssLookTarget == 1 && progress > 0.05f) abyssWhite else abyssBlue)
         drawSphere(-0.86f, 3.10f, -0.16f, leftR)
         abyssColor(if (abyssLookTarget == 2 && progress > 0.05f) abyssWhite else abyssOrange)
         drawSphere(0.86f, 3.10f, -0.16f, rightR)
         abyssColor(abyssWhite)
-        drawBone(-0.93f, 2.93f, -0.16f, -0.79f, 2.93f, -0.16f, 0.018f, 0.018f)
-        drawBone(-0.86f, 2.93f, -0.23f, -0.86f, 2.93f, -0.09f, 0.018f, 0.018f)
-        drawBone(0.79f, 2.93f, -0.16f, 0.93f, 2.93f, -0.16f, 0.018f, 0.018f)
+        // Símbolos grandes: + adiciona ar; – libera ar.
+        drawBone(-0.96f, 2.93f, -0.16f, -0.76f, 2.93f, -0.16f, 0.025f, 0.025f)
+        drawBone(-0.86f, 2.93f, -0.26f, -0.86f, 2.93f, -0.06f, 0.025f, 0.025f)
+        drawBone(0.76f, 2.93f, -0.16f, 0.96f, 2.93f, -0.16f, 0.025f, 0.025f)
+        // Anel de confirmação: os segmentos acendem enquanto o jogador mantém o olhar.
+        for (target in 1..2) {
+            val cx = if (target == 1) -0.86f else 0.86f
+            val active = abyssLookTarget == target
+            val filled = if (active) progress else 0f
+            for (i in 0 until 16) {
+                val a0 = (i / 16f * 2f * PI).toFloat()
+                val a1 = ((i + 0.72f) / 16f * 2f * PI).toFloat()
+                val lit = active && (i + 1) / 16f <= filled
+                abyssColor(if (lit) abyssWhite else abyssRock)
+                drawBone(
+                    cx + cos(a0) * 0.31f, 3.10f, -0.16f + sin(a0) * 0.31f,
+                    cx + cos(a1) * 0.31f, 3.10f, -0.16f + sin(a1) * 0.31f,
+                    0.012f, 0.012f
+                )
+            }
+        }
 
         // Indicador de ar: cinco pontos, preenchidos conforme o volume da bolsa.
         for (i in 0 until 5) {

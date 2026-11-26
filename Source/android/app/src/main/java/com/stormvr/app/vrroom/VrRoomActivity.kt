@@ -409,22 +409,22 @@ class VrRoomActivity : Activity() {
             typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
         })
         panel.addView(TextView(this).apply {
-            text = "PROTÓTIPO 01  •  PRINCÍPIO DE ARQUIMEDES"
+            text = "COCKPIT SUBMARINO  •  PRINCÍPIO DE ARQUIMEDES"
             textSize = 13f
             setTextColor(Color.rgb(113, 226, 236))
             gravity = Gravity.CENTER
             setPadding(0, dp(5), 0, dp(18))
         })
         panel.addView(TextView(this).apply {
-            text = """Você está vendo uma simulação submarina em primeira pessoa.
+            text = """Você está dentro da cabine de um submarino de pesquisa. O casco é fechado: use o sonar e os instrumentos do painel para entender o que acontece do lado de fora.
 
-Use as duas mãos:
-• Aponte com o indicador para a esquerda (válvula AZUL) ou para a direita (válvula LARANJA).
-• Faça uma pinça com polegar e indicador para confirmar.
-• Mão aberta solta a seleção; as cores mudam conforme o gesto.
-A mão é estabilizada pelo filtro do StormVR. Sem câmera/mãos, mantenha o olhar na válvula por 1,2 segundo para usar o controle alternativo.
+CONTROLES DO LASTRO:
+• Comando AZUL: bombeia ar para os tanques e aumenta a flutuabilidade.
+• Comando LARANJA: libera ar dos tanques e reduz a flutuabilidade.
+• Sem usar as mãos, mantenha o olhar sobre um comando por cerca de 1,2 segundo.
+• Com rastreamento ativo, aponte para um lado e faça uma pinça para confirmar.
 
-A bolsa maior desloca mais água e aumenta o empuxo. Ajuste o ar até alinhar a cápsula de resgate dentro do aro.
+O sonar apresenta ecos simulados. Os mostradores acompanham a variação de profundidade, pressão e lastro. Esta primeira etapa é um teste livre de cockpit; a missão e a história serão desenvolvidas depois.
 
 Ao iniciar, permita o uso da câmera para o rastreamento das mãos. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f
@@ -442,7 +442,7 @@ Ao iniciar, permita o uso da câmera para o rastreamento das mãos. No VR Box, c
             setOnClickListener { enterVr() }
         }, LinearLayout.LayoutParams(dp(280), dp(54)).apply { gravity = Gravity.CENTER })
         panel.addView(TextView(this).apply {
-            text = "Protótipo experimental — cenário e interação em desenvolvimento"
+            text = "Etapa 1: cockpit e sistemas básicos do submarino"
             textSize = 11f
             setTextColor(Color.rgb(165, 198, 210))
             gravity = Gravity.CENTER

@@ -267,14 +267,14 @@ class VrRoomActivity : Activity() {
         loadPrefs()
         abyssMode = intent.getBooleanExtra(EXTRA_ABYSS_MODE, false)
         if (abyssMode) {
-            // A cabeça continua no giroscópio (3DoF); a câmera/ARCore é usada somente para rastrear a mão.
-            // Mantém uma mão e o modo leve para limitar o consumo no celular.
+            // O Abismo usa a cabeça/giroscópio para selecionar os comandos pelo olhar.
+            // Câmera e rastreamento de mãos ficam desligados para não misturar gestos com o gaze.
             state.abyssMode = true
             state.stereo = true
             state.sixDof = false
-            state.handsOn = true
-            state.handLasers = true
-            state.twoHands = true
+            state.handsOn = false
+            state.handLasers = false
+            state.twoHands = false
             state.handMaxFps = 20
             state.passthrough = false
             state.fullscreen = false
@@ -307,9 +307,9 @@ class VrRoomActivity : Activity() {
         state.sixDof = com.stormvr.app.Prefs(this).sixDof          // 3DoF/6DoF: uma escolha só, na tela inicial
         if (abyssMode) {
             state.sixDof = false
-            state.handsOn = true
-            state.handLasers = true
-            state.twoHands = true
+            state.handsOn = false
+            state.handLasers = false
+            state.twoHands = false
             state.handMaxFps = 20
             state.passthrough = false
             state.stereo = true

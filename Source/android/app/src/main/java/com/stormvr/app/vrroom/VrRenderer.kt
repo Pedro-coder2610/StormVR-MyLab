@@ -543,6 +543,7 @@ class VrRenderer(
                 st.handValid[h] = ok
                 st.handPinch[h] = ok && f!!.pinch[h]
                 st.handRatio[h] = if (ok) f!!.ratio[h] else 1f
+                st.handGesture[h] = if (ok) f!!.gesture[h] else HandGesture.NONE
                 st.handClosing[h] = ok && f!!.closing[h]
                 if (!ok) {
                     hRenderInit[h] = false
@@ -631,6 +632,7 @@ class VrRenderer(
     private val handOk = BooleanArray(2)
     private val handPin = BooleanArray(2)
     private val handRat = FloatArray(2)
+    private val handGest = IntArray(2)
     private val ballColor = FloatArray(4)
 
     // programa 2D plano (teclado)
@@ -1066,6 +1068,7 @@ class VrRenderer(
     private fun drawScene() {
         if (st.abyssMode) {
             drawAbyssScene()
+            drawHands()
             return
         }
         if (st.passthrough) drawBackground() else drawRoom()
@@ -1201,6 +1204,10 @@ class VrRenderer(
     ).also { for (i in it.indices) it[i] *= 0.88f }       // dedos mais finos e elegantes
     private val cHandL = floatArrayOf(0.55f, 0.82f, 1.00f, 1f)    // azul-gelo suave
     private val cHandR = floatArrayOf(1.00f, 0.70f, 0.62f, 1f)    // coral suave
+    private val cGestureOpen = floatArrayOf(0.28f, 0.90f, 1.00f, 1f)
+    private val cGesturePoint = floatArrayOf(1.00f, 0.86f, 0.24f, 1f)
+    private val cGestureFist = floatArrayOf(1.00f, 0.48f, 0.20f, 1f)
+    private val cGestureThumb = floatArrayOf(0.80f, 0.62f, 1.00f, 1f)
     private val cPinch = floatArrayOf(0.30f, 1.00f, 0.55f, 1f)
     private val cReticle = floatArrayOf(1f, 1f, 1f, 1f)
     private val ballS = Array(2) { FloatArray(3) }
@@ -1214,6 +1221,7 @@ class VrRenderer(
                 handOk[h] = st.handValid[h]
                 handPin[h] = st.handPinch[h]
                 handRat[h] = st.handRatio[h]
+                handGest[h] = st.handGesture[h]
                 if (handOk[h]) System.arraycopy(st.handPts[h], 0, handCopy[h], 0, 63)
             }
         }
@@ -1229,7 +1237,14 @@ class VrRenderer(
         for (h in 0..1) {
             if (!handOk[h]) { ballInit[h] = false; continue }
             val p = handCopy[h]
-            val base = if (h == 0) cHandL else cHandR
+            val base = when (handGest[h]) {
+                HandGesture.OPEN -> cGestureOpen
+                HandGesture.POINT -> cGesturePoint
+                HandGesture.FIST -> cGestureFist
+                HandGesture.PINCH -> cPinch
+                HandGesture.THUMBS_UP -> cGestureThumb
+                else -> if (h == 0) cHandL else cHandR
+            }
             GLES20.glUniform4fv(hColor, 1, base, 0)
 
             // palma com espessura: duas camadas deslocadas ao longo da normal
@@ -1475,6 +1490,10 @@ class VrRenderer(
     private val cConsole = floatArrayOf(0.20f, 0.12f, 0.08f, 1f)
     private val cLampHead = floatArrayOf(1f, 0.85f, 0.55f, 1f)
     private val cPole = floatArrayOf(0.12f, 0.12f, 0.14f, 1f)
+    private val cChessTable = floatArrayOf(0.24f, 0.12f, 0.065f, 1f)
+    private val cChessBoard = floatArrayOf(0.82f, 0.66f, 0.46f, 1f)
+    private val cChessWhite = floatArrayOf(0.90f, 0.84f, 0.70f, 1f)
+    private val cChessBlack = floatArrayOf(0.12f, 0.13f, 0.17f, 1f)
     private val tmpC = FloatArray(4)
 
     private fun shade(c: FloatArray, f: Float): FloatArray {
@@ -1503,25 +1522,47 @@ class VrRenderer(
         val gy = st.gaze[1]
         val gz = st.gaze[2]
         val gn = sqrt(gx * gx + gy * gy + gz * gz)
-        if (gn < 0.2f) return
-        val nx = gx / gn; val ny = gy / gn; val nz = gz / gn
+        val nx = if (gn > 0.2f) gx / gn else 0f
+        val ny = if (gn > 0.2f) gy / gn else 1f
+        val nz = if (gn > 0.2f) gz / gn else 0f
         val targetX = 0.86f
         val targetY = 3.10f
         val targetZ = -0.16f
         val targetLen = sqrt(targetX * targetX + targetY * targetY + targetZ * targetZ)
         val leftDot = (nx * -targetX + ny * targetY + nz * targetZ) / targetLen
         val rightDot = (nx * targetX + ny * targetY + nz * targetZ) / targetLen
-        val selected = when {
-            leftDot > 0.992f -> 1       // válvula azul: adicionar ar
-            rightDot > 0.992f -> 2      // válvula laranja: liberar ar
+        val gazeSelected = when {
+            gn > 0.2f && leftDot > 0.992f -> 1
+            gn > 0.2f && rightDot > 0.992f -> 2
             else -> 0
         }
 
-        // A pinça já chega estabilizada pelo HandTracker (filtro One Euro + confirmação de quadros).
-        // Só aceita a borda de aperto, evitando repetir a ação enquanto os dedos ficam encostados.
-        val pinching = synchronized(st.handLock) {
-            (0..1).any { st.handValid[it] && st.handPinch[it] }
+        // A mão apontando seleciona o lado do corpo; a mesma mão pinça para acionar.
+        var anyHandVisible = false
+        var handSelected = 0
+        var handPinching = false
+        synchronized(st.handLock) {
+            for (h in 0..1) {
+                if (!st.handValid[h]) continue
+                anyHandVisible = true
+                val gesture = st.handGesture[h]
+                if (gesture != HandGesture.POINT && gesture != HandGesture.PINCH) continue
+                val p = st.handPts[h]
+                val palmX = (p[0] + p[15] + p[27] + p[39] + p[51]) * 0.2f
+                val side = palmX - st.headX
+                if (kotlin.math.abs(side) > 0.06f) {
+                    handSelected = if (side < 0f) 1 else 2
+                    handPinching = st.handPinch[h]
+                    break
+                }
+            }
         }
+
+        // Com uma mão visível, abrir a mão/desapontar limpa a seleção e rearma o controle.
+        // Sem mãos visíveis, o modo antigo por olhar continua disponível.
+        val usingHands = anyHandVisible
+        val selected = if (usingHands) handSelected else gazeSelected
+        val pinching = usingHands && handSelected != 0 && handPinching
         val pinchPressed = pinching && !abyssPinchHeld
         abyssPinchHeld = pinching
 
@@ -1538,7 +1579,6 @@ class VrRenderer(
             abyssDwellProgress = 0f
         }
 
-        // Olhar para a válvula seleciona; pinçar confirma imediatamente.
         if (pinchPressed && abyssLookArmed) {
             abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.10f).coerceAtMost(1f)
                             else (abyssAirLevel - 0.10f).coerceAtLeast(0f)
@@ -1547,16 +1587,20 @@ class VrRenderer(
             return
         }
 
-        // Enquanto a pinça estiver mantida, não deixa o temporizador de olhar repetir a ação.
-        if (pinching || !abyssLookArmed) return
+        if (usingHands) {
+            // A válvula fica realçada enquanto o indicador aponta. Sem pinça, não altera o ar.
+            abyssDwellProgress = if (pinching) 0.8f else 0.28f
+            return
+        }
+        if (!abyssLookArmed) return
 
-        // Alternativa sem mãos: manter o olhar por 1,2 s continua funcionando.
+        // Fallback acessível: sem câmera/mãos, manter o olhar por 1,2 s aciona a válvula.
         val elapsed = (nowNs - abyssLookStartedNs).coerceAtLeast(0L)
         abyssDwellProgress = (elapsed / 1_200_000_000f).coerceIn(0f, 1f)
         if (elapsed >= 1_200_000_000L) {
             abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.10f).coerceAtMost(1f)
                             else (abyssAirLevel - 0.10f).coerceAtLeast(0f)
-            abyssLookArmed = false  // precisa desviar o olhar antes de acionar de novo
+            abyssLookArmed = false
             abyssDwellProgress = 1f
         }
     }
@@ -1737,6 +1781,90 @@ class VrRenderer(
             box(sx, 3.6f, floorZ, 0.07f, 0.07f, 2.1f, cPole)
             box(sx, 3.6f, floorZ + 2.1f, 0.38f, 0.38f, 0.38f, cLampHead, 8f)
         }
+
+        // Mesa de xadrez recuperada do histórico: à frente do jogador e ao alcance das mãos.
+        drawChessTable()
+    }
+
+    /** Tabuleiro e 32 peças leves. O tabuleiro usa um único plano com padrão no shader para poupar draw calls. */
+    private fun drawChessTable() {
+        val cy = 0.85f
+        val topZ = floorZ + 0.99f
+        val boardSize = 1.16f
+        val cell = boardSize / 8f
+        // quatro pés e tampo
+        for (sx in floatArrayOf(-0.66f, 0.66f)) for (sy in floatArrayOf(-0.66f, 0.66f)) {
+            box(sx, cy + sy, floorZ + 0.42f, 0.085f, 0.085f, 0.84f, cChessTable)
+        }
+        box(0f, cy, floorZ + 0.88f, 1.58f, 1.58f, 0.12f, cChessTable)
+        // moldura e tabuleiro
+        box(0f, cy, topZ - 0.025f, 1.30f, 1.30f, 0.035f, cChessTable)
+        GLES20.glUseProgram(roomProg)
+        basis(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, 0f, cy, topZ, boardSize, boardSize)
+        quadRoom(cChessBoard, 11f, boardSize, boardSize)
+
+        // Peças em posição inicial. A coluna central separa as peças claras e escuras.
+        GLES20.glUseProgram(handProg)
+        GLES20.glUniformMatrix4fv(hVP, 1, false, vp, 0)
+        GLES20.glUniform3f(hEye, st.headX, st.headY, st.headZ)
+        GLES20.glUniform1f(hTaper, 1f)
+        GLES20.glEnableVertexAttribArray(hPos)
+        GLES20.glEnableVertexAttribArray(hNrm)
+        val back = charArrayOf('r', 'n', 'b', 'q', 'k', 'b', 'n', 'r')
+        for (row in 0..7) for (col in 0..7) {
+            val type = when (row) {
+                0 -> back[col]
+                1 -> 'p'
+                6 -> 'P'
+                7 -> back[col].uppercaseChar()
+                else -> continue
+            }
+            val white = type.isUpperCase()
+            val x = (col - 3.5f) * cell
+            val y = cy + (row - 3.5f) * cell
+            drawChessPiece(x, y, topZ + 0.006f, type.lowercaseChar(), white, cell)
+        }
+        GLES20.glUseProgram(roomProg)
+    }
+
+    /** Peças estilizadas em cilindros/esferas de baixa contagem de polígonos (adequadas ao celular). */
+    private fun drawChessPiece(x: Float, y: Float, z: Float, type: Char, white: Boolean, cell: Float) {
+        val color = if (white) cChessWhite else cChessBlack
+        GLES20.glUniform4fv(hColor, 1, color, 0)
+        val baseR = cell * 0.34f
+        drawBone(x, y, z, x, y, z + 0.025f, baseR, baseR * 0.88f)
+        val bodyTop = z + 0.13f
+        drawBone(x, y, z + 0.02f, x, y, bodyTop, baseR * 0.58f, baseR * 0.36f)
+        when (type) {
+            'p' -> drawSphere(x, y, bodyTop + 0.022f, cell * 0.15f)
+            'r' -> {
+                drawBone(x, y, bodyTop - 0.005f, x, y, bodyTop + 0.045f, cell * 0.30f, cell * 0.30f)
+                val d = cell * 0.22f
+                for (sx in floatArrayOf(-d, d)) for (sy in floatArrayOf(-d, d))
+                    drawSphere(x + sx, y + sy, bodyTop + 0.06f, cell * 0.075f)
+            }
+            'n' -> {
+                val dir = if (white) -1f else 1f
+                drawBone(x, y, bodyTop - 0.015f, x, y + dir * cell * 0.28f, bodyTop + 0.085f, cell * 0.23f, cell * 0.16f)
+                drawSphere(x, y + dir * cell * 0.30f, bodyTop + 0.09f, cell * 0.16f)
+                drawSphere(x, y + dir * cell * 0.40f, bodyTop + 0.075f, cell * 0.075f)
+            }
+            'b' -> {
+                drawSphere(x, y, bodyTop + 0.04f, cell * 0.16f)
+                drawBone(x, y, bodyTop + 0.10f, x, y, bodyTop + 0.15f, cell * 0.055f, cell * 0.04f)
+            }
+            'q' -> {
+                drawSphere(x, y, bodyTop + 0.055f, cell * 0.18f)
+                val d = cell * 0.21f
+                for (sx in floatArrayOf(-d, d)) for (sy in floatArrayOf(-d, d))
+                    drawSphere(x + sx, y + sy, bodyTop + 0.10f, cell * 0.065f)
+            }
+            'k' -> {
+                drawSphere(x, y, bodyTop + 0.045f, cell * 0.15f)
+                drawBone(x, y, bodyTop + 0.09f, x, y, bodyTop + 0.20f, cell * 0.045f, cell * 0.035f)
+                drawBone(x - cell * 0.13f, y, bodyTop + 0.16f, x + cell * 0.13f, y, bodyTop + 0.16f, cell * 0.035f, cell * 0.035f)
+            }
+        }
     }
 
     private fun quadRoom(c: FloatArray, mode: Float, sx: Float, sy: Float) {
@@ -1823,6 +1951,19 @@ class VrRenderer(
                 int mode = int(uMode + 0.5);
 
                 if (mode == 8) { gl_FragColor = uColor; return; }
+                if (mode == 11) {                        // tabuleiro 8x8 da mesa de xadrez
+                    vec2 cell = floor((vPos + 0.5) * 8.0);
+                    float dark = mod(cell.x + cell.y, 2.0);
+                    vec3 lightSq = vec3(0.84, 0.70, 0.50);
+                    vec3 darkSq = vec3(0.16, 0.19, 0.23);
+                    vec3 board = mix(lightSq, darkSq, dark);
+                    float edge = max(abs(vPos.x), abs(vPos.y));
+                    if (edge > 0.492) board *= 0.70;
+                    vec3 dvBoard = vW - uLight.xyz;
+                    float litBoard = uLight.w / (1.0 + 0.18 * dot(dvBoard, dvBoard));
+                    gl_FragColor = vec4(board * (0.55 + litBoard * vec3(0.75, 0.90, 1.05)), 1.0);
+                    return;
+                }
 
                 if (mode == 9) {                         // gradiente do oceano em 360 graus
                     float h = clamp(vPos.y + 0.5, 0.0, 1.0);

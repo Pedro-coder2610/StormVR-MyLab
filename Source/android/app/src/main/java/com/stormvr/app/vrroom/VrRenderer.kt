@@ -673,6 +673,7 @@ class VrRenderer(
     private var abyssLookStartedNs = 0L
     private var abyssDwellProgress = 0f
     private var abyssLookArmed = true
+    private var abyssPinchHeld = false
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         roomProg = program(ROOM_VS, ROOM_FS)
@@ -1516,6 +1517,14 @@ class VrRenderer(
             else -> 0
         }
 
+        // A pinça já chega estabilizada pelo HandTracker (filtro One Euro + confirmação de quadros).
+        // Só aceita a borda de aperto, evitando repetir a ação enquanto os dedos ficam encostados.
+        val pinching = synchronized(st.handLock) {
+            (0..1).any { st.handValid[it] && st.handPinch[it] }
+        }
+        val pinchPressed = pinching && !abyssPinchHeld
+        abyssPinchHeld = pinching
+
         if (selected == 0) {
             abyssLookTarget = 0
             abyssLookStartedNs = 0L
@@ -1528,7 +1537,20 @@ class VrRenderer(
             abyssLookStartedNs = nowNs
             abyssDwellProgress = 0f
         }
-        if (!abyssLookArmed) return
+
+        // Olhar para a válvula seleciona; pinçar confirma imediatamente.
+        if (pinchPressed && abyssLookArmed) {
+            abyssAirLevel = if (selected == 1) (abyssAirLevel + 0.10f).coerceAtMost(1f)
+                            else (abyssAirLevel - 0.10f).coerceAtLeast(0f)
+            abyssLookArmed = false
+            abyssDwellProgress = 1f
+            return
+        }
+
+        // Enquanto a pinça estiver mantida, não deixa o temporizador de olhar repetir a ação.
+        if (pinching || !abyssLookArmed) return
+
+        // Alternativa sem mãos: manter o olhar por 1,2 s continua funcionando.
         val elapsed = (nowNs - abyssLookStartedNs).coerceAtLeast(0L)
         abyssDwellProgress = (elapsed / 1_200_000_000f).coerceIn(0f, 1f)
         if (elapsed >= 1_200_000_000L) {

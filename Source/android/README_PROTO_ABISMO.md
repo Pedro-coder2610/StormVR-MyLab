@@ -11,9 +11,19 @@ O modo Abismo reutiliza o renderizador estéreo do StormVR, o giroscópio e o ra
 - Sem câmera ou sem mão detectada, mantenha o olhar sobre a válvula por aproximadamente 1,2 segundo como alternativa.
 - A cabeça continua sendo orientada pelo giroscópio; a câmera é usada para rastrear as mãos, não para 6DoF da cabeça.
 
-## Objetivo físico
+## Missão — Operação Abismo
 
-A cápsula de resgate deve ficar alinhada ao aro. A bolsa maior desloca mais água e aumenta o empuxo; reduza o ar para diminuir a flutuabilidade. O protótipo mantém uma simulação qualitativa, não um solucionador de forças calibrado.
+A missão agora tem um objetivo jogável: estabilizar o módulo de resgate dentro do aro antes que o oxigênio acabe.
+
+- **Válvula azul:** adiciona ar em pequenos incrementos e aumenta o empuxo.
+- **Válvula laranja:** libera ar e reduz o empuxo.
+- **Inércia:** a cápsula acelera e desacelera gradualmente; evite corrigir demais.
+- **Correnteza:** uma força variável interfere na subida/descida e é indicada por setas na cena.
+- **Oxigênio:** há uma reserva de 180 segundos para concluir a missão.
+- **Estabilidade:** mantenha a cápsula próxima do centro do aro e com pouca velocidade por 4 segundos para concluir o resgate.
+- **Falha:** o oxigênio esgotado encerra a tentativa.
+
+A física é uma simulação didática simplificada, não um solucionador hidrodinâmico calibrado. As luzes do HUD representam a reserva de oxigênio e o progresso de estabilidade.
 
 ## Mesa de xadrez
 

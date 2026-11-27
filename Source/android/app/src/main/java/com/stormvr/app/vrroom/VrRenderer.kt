@@ -680,9 +680,10 @@ class VrRenderer(
     private var abyssStableTime = 0f
     private var abyssMissionState = 0 // 0 em andamento, 1 resgate concluído, 2 oxigênio esgotado
     private var abyssLastPhysicsNs = 0L
-    private var abyssLookTarget = 0
-    private var abyssLookStartedNs = 0L
-    private var abyssDwellProgress = 0f
+    // Interação exclusiva por pinça: mão esquerda = subir; mão direita = descer.
+    private var abyssActiveControl = 0
+    private val abyssPinchHeld = BooleanArray(2)
+    private val abyssPressFlash = FloatArray(2)
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         roomProg = program(ROOM_VS, ROOM_FS)
@@ -1551,7 +1552,7 @@ class VrRenderer(
     // ===================================================================== Operação Abismo — protótipo 01
     // O eixo Y aponta para a frente e Z para cima, igual ao restante mundo 3D do StormVR.
     private fun updateAbyssInteraction(nowNs: Long) {
-        // A física roda independente da taxa de quadros.
+        // Física independente do FPS.
         val dt = if (abyssLastPhysicsNs == 0L) 0.016f
             else ((nowNs - abyssLastPhysicsNs) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
         abyssLastPhysicsNs = nowNs
@@ -1569,63 +1570,46 @@ class VrRenderer(
             }
         }
 
+        // O brilho decai suavemente depois de cada acionamento, sem repetição enquanto a pinça fica fechada.
+        for (h in 0..1) abyssPressFlash[h] = (abyssPressFlash[h] - dt * 2.8f).coerceAtLeast(0f)
         if (abyssMissionState != 0) {
-            abyssLookTarget = 0
-            abyssLookStartedNs = 0L
-            abyssDwellProgress = 0f
-            return
-        }
-
-        // CONTROLE ÚNICO: olhe para SUBIR ou DESCER. Não precisa apontar a mão nem fazer pinça.
-        val gx = st.gaze[0]
-        val gy = st.gaze[1]
-        val gz = st.gaze[2]
-        val gn = sqrt(gx * gx + gy * gy + gz * gz)
-        val nx = if (gn > 0.2f) gx / gn else 0f
-        val ny = if (gn > 0.2f) gy / gn else 1f
-        val nz = if (gn > 0.2f) gz / gn else 0f
-
-        // Alvos iguais às posições físicas dos dois botões no painel, em alcance confortável do olhar.
-        val targetX = 0.88f
-        val targetY = 1.43f
-        val targetZ = -0.82f
-        val targetLen = sqrt(targetX * targetX + targetY * targetY + targetZ * targetZ)
-        val leftDot = (nx * -targetX + ny * targetY + nz * targetZ) / targetLen
-        val rightDot = (nx * targetX + ny * targetY + nz * targetZ) / targetLen
-        val selected = when {
-            gn > 0.2f && leftDot > 0.90f -> 1
-            gn > 0.2f && rightDot > 0.90f -> 2
-            else -> 0
-        }
-
-        if (selected == 0) {
-            abyssLookTarget = 0
-            abyssLookStartedNs = 0L
-            abyssDwellProgress = 0f
-            return
-        }
-        if (selected != abyssLookTarget || abyssLookStartedNs == 0L) {
-            abyssLookTarget = selected
-            abyssLookStartedNs = nowNs
-            abyssDwellProgress = 0f
-        }
-
-        // O aro enche em 0,8 s. Continuar olhando repete um ajuste pequeno a cada 0,8 s.
-        val holdNs = 800_000_000L
-        val elapsed = (nowNs - abyssLookStartedNs).coerceAtLeast(0L)
-        abyssDwellProgress = (elapsed / holdNs.toFloat()).coerceIn(0f, 1f)
-        if (elapsed >= holdNs) {
-            abyssAirLevel = if (selected == 1) {
-                (abyssAirLevel + 0.08f).coerceAtMost(1f)
-            } else {
-                (abyssAirLevel - 0.08f).coerceAtLeast(0f)
+            abyssActiveControl = 0
+            synchronized(st.handLock) {
+                for (h in 0..1) abyssPinchHeld[h] = st.handValid[h] && st.handPinch[h]
             }
-            abyssLookStartedNs = nowNs
-            abyssDwellProgress = 0f
+            return
+        }
+
+        // Não há seleção por olhar nem fallback automático. Cada mão aciona seu próprio comando.
+        abyssActiveControl = 0
+        synchronized(st.handLock) {
+            for (h in 0..1) {
+                val valid = st.handValid[h]
+                val pinching = valid && st.handPinch[h] && st.handGesture[h] == HandGesture.PINCH
+                if (!valid) {
+                    abyssPinchHeld[h] = false
+                    continue
+                }
+
+                // Um toque de pinça por vez: é preciso abrir os dedos antes de acionar novamente.
+                if (pinching && !abyssPinchHeld[h]) {
+                    if (h == 0) {
+                        abyssAirLevel = (abyssAirLevel + 0.08f).coerceAtMost(1f)
+                    } else {
+                        abyssAirLevel = (abyssAirLevel - 0.08f).coerceAtLeast(0f)
+                    }
+                    abyssPressFlash[h] = 1f
+                }
+                abyssPinchHeld[h] = pinching
+
+                if (pinching || st.handGesture[h] == HandGesture.POINT) {
+                    abyssActiveControl = h + 1
+                }
+            }
         }
     }
 
-    private fun beginAbyssOrganic() {
+    private fun beginAbyssOrganic()
         GLES20.glUseProgram(handProg)
         GLES20.glUniformMatrix4fv(hVP, 1, false, vp, 0)
         GLES20.glUniform3f(hEye, st.headX, st.headY, st.headZ)
@@ -1812,6 +1796,10 @@ class VrRenderer(
         box(-1.78f, -1.18f, -1.22f, 0.78f, 0.66f, 0.48f, hullAlt)
         box(1.78f, -1.18f, -1.22f, 0.78f, 0.66f, 0.48f, hullAlt)
         box(0f, -0.85f, 1.86f, 0.72f, 0.42f, 0.20f, hullAlt)
+        // Apoio rebaixado para os comandos: operáveis com as mãos perto do colo, sem braços erguidos.
+        box(0f, 0.50f, -0.66f, 1.96f, 0.42f, 0.48f, panel)
+        box(-0.78f, 0.68f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
+        box(0.78f, 0.68f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
 
         // Escotilha traseira estanque — sem janela para o exterior.
         beginAbyssOrganic()
@@ -1996,13 +1984,13 @@ class VrRenderer(
         abyssColor(warm)
         drawSphere(-1.72f, 1.43f, 0.56f, 0.025f)
 
-        // Controles finais: duas ações apenas, com rótulo e seta gravados no próprio comando.
-        drawAbyssControl(-0.88f, 1.43f, -0.82f, abyssBlue,
-            abyssLookTarget == 1, abyssDwellProgress, true)
-        drawAbyssControl(0.88f, 1.43f, -0.82f, abyssOrange,
-            abyssLookTarget == 2, abyssDwellProgress, false)
-        drawAbyssWord("SUBIR", -0.88f, 1.385f, -0.34f, 0.11f, abyssBlue)
-        drawAbyssWord("DESCER", 0.88f, 1.385f, -0.34f, 0.11f, abyssOrange)
+        // Módulo de comandos abaixo do console principal, junto à altura da cintura/mãos descansadas.
+        drawAbyssControl(-0.48f, 0.30f, -0.66f, abyssBlue,
+            abyssActiveControl == 1, abyssPressFlash[0], true)
+        drawAbyssControl(0.48f, 0.30f, -0.66f, abyssOrange,
+            abyssActiveControl == 2, abyssPressFlash[1], false)
+        drawAbyssWord("SUBIR", -0.48f, 0.285f, -0.30f, 0.11f, abyssBlue)
+        drawAbyssWord("DESCER", 0.48f, 0.285f, -0.30f, 0.11f, abyssOrange)
     }
 
     private fun drawRoom() {

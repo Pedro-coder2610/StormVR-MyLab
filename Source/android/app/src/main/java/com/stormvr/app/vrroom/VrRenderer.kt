@@ -681,6 +681,7 @@ class VrRenderer(
     private val abyssRing = floatArrayOf(1.00f, 0.80f, 0.25f, 1f)
     private val abyssRingOk = floatArrayOf(0.20f, 1.00f, 0.58f, 1f)
     // Estado da missão: profundidade em metros, alvo do mergulho e deslocamentos laterais.
+    private val abyssOxygenCapacitySeconds = 30f
     private var abyssAirLevel = 0.72f
     private var abyssDepthMeters = 8f
     private var abyssTargetDepthMeters = 8f
@@ -688,7 +689,7 @@ class VrRenderer(
     private var abyssPodX = 0f
     private var abyssPodForward = 0f
     private var abyssCurrent = 0f
-    private var abyssOxygen = 30f
+    private var abyssOxygen = abyssOxygenCapacitySeconds
     private var abyssPipeBurst = false
     private var abyssLowOxygenWarned = false
     private var abyssMissionTime = 0f
@@ -1614,6 +1615,38 @@ class VrRenderer(
 
     // ===================================================================== Operação Abismo — protótipo 01
     // O eixo Y aponta para a frente e Z para cima, igual ao restante mundo 3D do StormVR.
+    /** Reinicia a missão ao iniciar um novo mergulho, sempre com o tanque de O2 na capacidade máxima. */
+    fun resetAbyssMission() {
+        abyssAirLevel = 0.72f
+        abyssDepthMeters = 8f
+        abyssTargetDepthMeters = 8f
+        abyssDepthRate = 0f
+        abyssPodX = 0f
+        abyssPodForward = 0f
+        abyssCurrent = 0f
+        abyssOxygen = abyssOxygenCapacitySeconds
+        abyssPipeBurst = false
+        abyssLowOxygenWarned = false
+        abyssMissionTime = 0f
+        abyssStableTime = 0f
+        abyssMissionState = 0
+        abyssLastPhysicsNs = 0L
+        abyssPhotoRevealUntilNs = 0L
+        abyssPhotoFlashUntilNs = 0L
+        abyssPhotoCount = 0
+        abyssTreasureFound = false
+        abyssActiveButton = -1
+        for (i in abyssButtonFlash.indices) abyssButtonFlash[i] = 0f
+        for (h in 0..1) {
+            abyssHandHeldButton[h] = -1
+            abyssHandCandidateButton[h] = -1
+            abyssHandCandidateSinceNs[h] = 0L
+        }
+        abyssFadeStartNs = 0L
+        abyssExitRequested = false
+        st.abyssAudioCues.clear()
+    }
+
     private fun updateAbyssInteraction(nowNs: Long) {
         val dt = if (abyssLastPhysicsNs == 0L) 0.016f
             else ((nowNs - abyssLastPhysicsNs) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
@@ -1656,7 +1689,7 @@ class VrRenderer(
                 if (abyssOxygen > 0f && abyssDepthMeters <= 10f) {
                     abyssPipeBurst = false
                     abyssLowOxygenWarned = false
-                    abyssOxygen = 30f
+                    abyssOxygen = abyssOxygenCapacitySeconds
                     st.abyssAudioCues.offer(UnderwaterAmbience.CUE_SURFACE)
                 }
 
@@ -2064,11 +2097,12 @@ class VrRenderer(
         val panelX = 1.985f
         val centerY = 0.12f
         val centerZ = 0.98f
+        val mapScale = 1.15f
         fun mapLine(u1: Float, v1: Float, u2: Float, v2: Float, radius: Float) {
             drawBone(
-                panelX, centerY + u1, centerZ + v1,
-                panelX, centerY + u2, centerZ + v2,
-                radius, radius
+                panelX, centerY + u1 * mapScale, centerZ + v1 * mapScale,
+                panelX, centerY + u2 * mapScale, centerZ + v2 * mapScale,
+                radius * 1.04f, radius * 1.04f
             )
         }
         val border = abyssWhite
@@ -2164,11 +2198,11 @@ class VrRenderer(
             )
         }
 
-        drawAbyssSideWord("MAPA", 0f, 0.49f, 0.085f, abyssWhite)
+        drawAbyssSideWord("MAPA", 0f, 0.57f, 0.095f, abyssWhite)
         val coordX = 124 + (abyssPodX * 20f).toInt()
         val coordY = 38 + (abyssPodForward * 20f).toInt()
         val depthCoord = abyssDepthMeters.toInt()
-        drawAbyssSideWord("X$coordX Y$coordY Z$depthCoord", 0f, -0.61f, 0.042f, abyssWhite)
+        drawAbyssSideWord("X$coordX Y$coordY Z$depthCoord", 0f, -0.70f, 0.046f, abyssWhite)
     }
 
     private fun drawAbyssPhotoWindow() {
@@ -2245,12 +2279,7 @@ class VrRenderer(
         drawSphere(abyssPhotoButtonX, abyssPhotoButtonY, abyssPhotoButtonZ + 0.050f, 0.020f)
         drawAbyssWord("FOTO", abyssPhotoButtonX, abyssPhotoButtonY - 0.085f,
             abyssPhotoButtonZ + 0.035f, 0.040f, abyssWhite)
-        // Orientação da missão junto ao botão: a partir de 90 m a foto pode revelar o tesouro.
-        drawAbyssWord(
-            if (photoReady) "FOTO 90M" else "DESCA 90M",
-            abyssPhotoButtonX, abyssPhotoButtonY + 0.115f, abyssPhotoButtonZ + 0.035f,
-            0.036f, readyColor
-        )
+        // A instrução de profundidade fica acima da janela, sem ocupar o espaço das setas.
     }
 
     private fun drawAbyssScene() {
@@ -2485,8 +2514,8 @@ class VrRenderer(
         // Mapa cartográfico físico montado na parede à direita do piloto.
         val mapPanel = floatArrayOf(0.008f, 0.036f, 0.047f, 1f)
         basis(0f, 1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f,
-            2.02f, 0.12f, 0.98f, 1.18f, 1.34f)
-        quadRoom(mapPanel, 8f, 1.18f, 1.34f)
+            2.02f, 0.12f, 0.98f, 1.36f, 1.54f)
+        quadRoom(mapPanel, 8f, 1.36f, 1.54f)
 
         // Seis teclas/setas pequenas e baixas sobre a bancada, perto das mãos em repouso.
         val padMetal = floatArrayOf(0.36f, 0.42f, 0.41f, 1f)
@@ -2499,6 +2528,12 @@ class VrRenderer(
         beginAbyssOrganic()
         drawAbyssPhotoWindow()
         drawAbyssWallMap()
+        val photoReady = abyssDepthMeters >= 90f && !abyssTreasureFound
+        drawAbyssWord(
+            if (photoReady) "FOTO 90M" else "META 90M",
+            -1.28f, 1.455f, 1.145f, 0.045f,
+            if (photoReady) abyssRingOk else abyssCoral2
+        )
 
         // Botão dedicado para fotografar, ao lado do conjunto de seis setas.
         drawAbyssPhotoButton()
@@ -2532,9 +2567,10 @@ class VrRenderer(
         drawAbyssGauge(1.27f, 1.47f, 0.02f, 0.31f, pressureGauge, abyssCoral2)
 
         // Indicador de oxigênio aparece no console e só cai depois do rompimento por pressão.
-        val oxygenRatio = (abyssOxygen / 30f).coerceIn(0f, 1f)
+        val oxygenRatio = (abyssOxygen / abyssOxygenCapacitySeconds).coerceIn(0f, 1f)
         val oxygenColor = if (abyssOxygen < 8f) abyssCoral else if (abyssOxygen < 15f) abyssCoral2 else abyssRingOk
-        drawAbyssWord("O2", -0.43f, 1.455f, -0.70f, 0.075f, oxygenColor)
+        val oxygenFull = abyssOxygen >= abyssOxygenCapacitySeconds - 0.01f
+        drawAbyssWord(if (oxygenFull) "O2 MAX" else "O2", -0.20f, 1.455f, -0.70f, 0.075f, oxygenColor)
         drawAbyssWord("${abyssOxygen.toInt()}S", 0.30f, 1.455f, -0.70f, 0.075f, oxygenColor)
         drawAbyssWord("${abyssDepthMeters.toInt()}M", 0.98f, 1.455f, -0.70f, 0.065f, abyssBlue)
         for (i in 0 until 10) {

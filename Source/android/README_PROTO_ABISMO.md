@@ -36,15 +36,17 @@ Durante o mergulho, o protótipo reproduz um som procedural de água abafada, co
 
 O mapa cartográfico fica na parede à direita do piloto (é preciso virar a cabeça para a direita para observá-lo). Em vez da palavra “ROTA” com uma única linha, ele apresenta curvas batimétricas irregulares para representar o relevo do fundo oceânico, grade, trilha tracejada, marcador da posição atual, destino e coordenadas simuladas. As setas esquerda/direita e frente/trás movem o marcador e atualizam **X/Y**; **Z** acompanha a profundidade. Esses valores são coordenadas internas do protótipo, não GPS nem navegação real no oceano.
 
-Ao ultrapassar o limite de profundidade, a pressão rompe uma seção da tubulação lateral. Bolhas saem do trecho rompido, uma luz vermelha alerta o jogador e o indicador de O2 começa a cair. A taxa de perda aumenta com a profundidade. Quando o O2 chega a zero, a imagem escurece gradualmente durante quatro segundos e o aplicativo encerra a atividade do jogo.
+Ao atingir 180 m, a pressão rompe uma seção da tubulação lateral. Bolhas saem do trecho rompido, uma luz vermelha alerta o jogador e o indicador de O2 começa a cair. A reserva inicial é de **30 segundos**; o consumo acelera com a profundidade. Se o jogador regressar à zona segura (até 10 m) antes de zerar, o sistema sela o vazamento e recarrega automaticamente os 30 segundos para uma nova descida. Se o O2 chegar a zero, a imagem escurece gradualmente durante quatro segundos e o aplicativo encerra a atividade do jogo.
+
+Ao fotografar a área de busca a partir de 90 m, a janela revela um destroço e um baú. O achado encerra a missão com uma cartela simples: **MISSÃO CONCLUÍDA — TESOURO ENCONTRADO**. O final fica visível na cabine; é uma conclusão curta de protótipo, não uma sequência cinematográfica completa.
 
 ## Estado inicial da missão
 
-O submarino começa a **8 m de profundidade**, perto da superfície, com a reserva de O2 completa (300 segundos). A profundidade-alvo começa em 8 m e muda em passos de 35 m pelas setas subir/descer. O veículo pode descer até 300 m; em 180 m a pressão rompe uma tubulação e inicia o consumo de O2. O indicador de lastro é separado do O2.
+O submarino começa a **8 m de profundidade**, perto da superfície, com 30 segundos de O2. A profundidade-alvo começa em 8 m e muda em passos de 35 m pelas setas subir/descer. O veículo pode descer até 300 m; em 180 m a pressão rompe uma tubulação e inicia o consumo de O2. Ao retornar a até 10 m antes do esgotamento, o cano é selado e a reserva volta a 30 segundos. O indicador de lastro é separado do O2.
 
 ## O que ainda não está pronto
 
-1. A missão com começo, objetivo, tarefas e final.
+1. Uma sequência final cinematográfica e efeitos sonoros de conclusão.
 2. A câmera externa com exploração real do ambiente.
 3. Navegação horizontal funcional e detecção real de alvos pelo sonar.
 4. Sistemas de energia, reparo de casco e objetivos de missão com consequências jogáveis.

@@ -194,7 +194,7 @@ class HandTracker(
     private var fpsT = 0L
 
     fun info(): String =
-        "modelo: $stage [$delegateName${if (st.lite || autoHalf) " ½res" else ""}] | mãos: $lastHands/$builtHands | ${procFps}/${camFps} fps | ${lastMs} ms | enviados: $submitted" +
+        "modelo: $stage [$delegateName${if (st.lite || autoHalf) " ½res" else ""}] | mãos: $lastHands/$builtHands | calibração: ${if (identityCalibrated) "OK" else "mostre as duas"} | ${procFps}/${camFps} fps | ${lastMs} ms | enviados: $submitted" +
             (if (lastError.isNotEmpty()) " | erro: $lastError" else "")
 
     @Volatile var ready = false
@@ -246,11 +246,13 @@ class HandTracker(
     private val gestureFrames = IntArray(2)
     private var swapVotes = 3      // >= 0: o rótulo do MediaPipe vem invertido (imagem não espelhada)
     // A identidade esquerda/direita só fica liberada depois de ver as duas mãos juntas.
-    private var identityCalibrated = false
+    @Volatile private var identityCalibrated = false
+    private var calibrationMessageSent = false
 
     fun start() {
         if (running) return
         identityCalibrated = false
+        calibrationMessageSent = false
         swapVotes = 3
         sem.drainPermits()
         synchronized(qLock) { pend = -1; proc = -1 }
@@ -880,6 +882,10 @@ class HandTracker(
                     (rightDet.label == "Left" || rightDet.label == "Right")) {
                     swapVotes = if (leftDet.label == "Right") 3 else -3
                     identityCalibrated = true
+                    if (!calibrationMessageSent) {
+                        calibrationMessageSent = true
+                        onMessage("Mãos calibradas! Esquerda e direita reconhecidas. Agora você pode usar só uma mão.")
+                    }
                 }
             }
             if (identityCalibrated) {

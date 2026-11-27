@@ -433,7 +433,7 @@ SEIS SETAS PEQUENAS NA BANCADA — USE AS MÃOS:
 • A partir de 90 metros, a foto pode revelar o tesouro escondido. Antes disso, a câmera captura apenas vultos na escuridão.
 • Tire a mão da placa para liberar o próximo acionamento. Olhar e movimento da cabeça servem apenas para olhar ao redor.
 
-A missão começa a 8 metros de profundidade, perto da superfície, com 300 segundos de O2. O sonar apresenta ecos simulados; pressão e vazamento passam a ameaçar o submarino a partir de 180 metros.
+A missão começa a 8 metros de profundidade, perto da superfície, com o tanque de O2 cheio (30 segundos de reserva). O sonar apresenta ecos simulados; pressão e vazamento passam a ameaçar o submarino a partir de 180 metros.
 
 Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por um instante para calibrar esquerda e direita; depois pode usar apenas uma mão para alcançar qualquer uma das seis setas. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f
@@ -1035,6 +1035,7 @@ Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por u
     }
 
     private fun enterVr(fullscreen: Boolean = false) {
+        if (abyssMode) renderer.resetAbyssMission()
         state.fullscreen = fullscreen
         if (!renderer.hasSensor && !fullscreen) toast("Este aparelho não tem sensor de rotação (giroscópio).")
         if (!abyssMode) {

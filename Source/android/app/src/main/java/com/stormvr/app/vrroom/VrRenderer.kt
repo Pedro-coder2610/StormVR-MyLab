@@ -1682,6 +1682,7 @@ class VrRenderer(
                 'D' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 'E' -> intArrayOf(0, 1, 3, 4, 6)
                 'C' -> intArrayOf(0, 1, 4, 6)
+                'A' -> intArrayOf(0, 1, 2, 3, 4, 5)
                 'O', '0' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 '1' -> intArrayOf(2, 5)
                 '2' -> intArrayOf(0, 2, 3, 4, 6)

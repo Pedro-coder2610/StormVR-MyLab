@@ -1910,7 +1910,7 @@ class VrRenderer(
         var u0 = centerU - total * 0.5f
         val panelX = 1.985f
         val centerY = 0.12f
-        val centerZ = 0.86f
+        val centerZ = 0.98f
         abyssColor(color)
         for (ch in word) {
             val segments = when (ch) {
@@ -1961,8 +1961,8 @@ class VrRenderer(
                     else -> { u1 = u0; v1 = baseV; u2 = u0 + w; v2 = baseV + height }
                 }
                 drawBone(
-                    panelX, centerY - u1, centerZ + v1,
-                    panelX, centerY - u2, centerZ + v2,
+                    panelX, centerY + u1, centerZ + v1,
+                    panelX, centerY + u2, centerZ + v2,
                     0.0045f, 0.0045f
                 )
             }
@@ -1973,11 +1973,11 @@ class VrRenderer(
     private fun drawAbyssWallMap() {
         val panelX = 1.985f
         val centerY = 0.12f
-        val centerZ = 0.86f
+        val centerZ = 0.98f
         fun mapLine(u1: Float, v1: Float, u2: Float, v2: Float, radius: Float) {
             drawBone(
-                panelX, centerY - u1, centerZ + v1,
-                panelX, centerY - u2, centerZ + v2,
+                panelX, centerY + u1, centerZ + v1,
+                panelX, centerY + u2, centerZ + v2,
                 radius, radius
             )
         }
@@ -2269,8 +2269,8 @@ class VrRenderer(
 
         // Mapa cartográfico físico montado na parede à direita do piloto.
         val mapPanel = floatArrayOf(0.008f, 0.036f, 0.047f, 1f)
-        basis(0f, -1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f,
-            2.02f, 0.12f, 0.86f, 1.18f, 1.34f)
+        basis(0f, 1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f,
+            2.02f, 0.12f, 0.98f, 1.18f, 1.34f)
         quadRoom(mapPanel, 8f, 1.18f, 1.34f)
 
         // Seis teclas/setas pequenas e baixas sobre a bancada, perto das mãos em repouso.

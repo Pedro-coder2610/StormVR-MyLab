@@ -696,7 +696,7 @@ class VrRenderer(
     private var abyssLastPhysicsNs = 0L
 
     // Câmera/fotografia da janela esquerda: quase sempre escura; a captura revela o fundo.
-    private val abyssPhotoButtonX = -1.28f
+    private val abyssPhotoButtonX = -0.50f
     private val abyssPhotoButtonY = 0.60f
     private val abyssPhotoButtonZ = -0.405f
     private var abyssPhotoRevealUntilNs = 0L
@@ -1808,6 +1808,7 @@ class VrRenderer(
                 'D' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 'E' -> intArrayOf(0, 1, 3, 4, 6)
                 'C' -> intArrayOf(0, 1, 4, 6)
+                'G' -> intArrayOf(0, 1, 3, 4, 5, 6)
                 'A' -> intArrayOf(0, 1, 2, 3, 4, 5)
                 'L' -> intArrayOf(1, 4, 6)
                 'M' -> intArrayOf(1, 2, 8, 9, 10)

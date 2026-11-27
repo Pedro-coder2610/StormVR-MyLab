@@ -680,10 +680,11 @@ class VrRenderer(
     private val abyssPod = floatArrayOf(0.78f, 0.84f, 0.88f, 1f)
     private val abyssRing = floatArrayOf(1.00f, 0.80f, 0.25f, 1f)
     private val abyssRingOk = floatArrayOf(0.20f, 1.00f, 0.58f, 1f)
-    // Estado da missão: física simplificada, com movimento lateral, longitudinal e vertical.
+    // Estado da missão: profundidade em metros, alvo do mergulho e deslocamentos laterais.
     private var abyssAirLevel = 0.72f
-    private var abyssPodVelocity = 0f
-    private var abyssPodHeight = 1.12f
+    private var abyssDepthMeters = 8f
+    private var abyssTargetDepthMeters = 8f
+    private var abyssDepthRate = 0f
     private var abyssPodX = 0f
     private var abyssPodForward = 0f
     private var abyssCurrent = 0f
@@ -694,6 +695,15 @@ class VrRenderer(
     private var abyssMissionState = 0 // 0 em andamento, 1 resgate concluído, 2 oxigênio esgotado
     private var abyssLastPhysicsNs = 0L
 
+    // Câmera/fotografia da janela esquerda: quase sempre escura; a captura revela o fundo.
+    private val abyssPhotoButtonX = -0.50f
+    private val abyssPhotoButtonY = 0.60f
+    private val abyssPhotoButtonZ = -0.405f
+    private var abyssPhotoRevealUntilNs = 0L
+    private var abyssPhotoFlashUntilNs = 0L
+    private var abyssPhotoCount = 0
+    private var abyssTreasureFound = false
+
     // Seis placas compactas em uma área de alcance natural, duas colunas por três linhas.
     // Cada linha corresponde a um eixo: X (lados), Y (frente/trás), Z (subir/descer).
     private val abyssPadX = floatArrayOf(-0.13f, 0.13f, -0.13f, 0.13f, -0.13f, 0.13f)
@@ -701,7 +711,7 @@ class VrRenderer(
     private val abyssPadTopZ = -0.405f
     private var abyssActiveButton = -1
     private val abyssHandHeldButton = IntArray(2) { -1 }
-    private val abyssButtonFlash = FloatArray(6)
+    private val abyssButtonFlash = FloatArray(7)
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         roomProg = program(ROOM_VS, ROOM_FS)
@@ -1602,7 +1612,6 @@ class VrRenderer(
     // ===================================================================== Operação Abismo — protótipo 01
     // O eixo Y aponta para a frente e Z para cima, igual ao restante mundo 3D do StormVR.
     private fun updateAbyssInteraction(nowNs: Long) {
-        // Física independente do FPS.
         val dt = if (abyssLastPhysicsNs == 0L) 0.016f
             else ((nowNs - abyssLastPhysicsNs) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
         abyssLastPhysicsNs = nowNs
@@ -1611,22 +1620,31 @@ class VrRenderer(
         if (abyssMissionState == 0) {
             abyssMissionTime += dt
             abyssCurrent = sin(t * 0.72f) * 0.10f + sin(t * 1.31f) * 0.045f
-            val buoyancy = (abyssAirLevel - 0.5f) * 1.20f
-            abyssPodVelocity += (buoyancy + abyssCurrent - abyssPodVelocity * 1.10f) * dt
-            abyssPodHeight = (abyssPodHeight + abyssPodVelocity * dt * 1.2f).coerceIn(-1.35f, 1.35f)
 
-            // Em grande profundidade, a pressão rompe uma tubulação e o vazamento consome O2.
-            if (abyssPodHeight <= -0.95f) abyssPipeBurst = true
+            // As setas definem uma profundidade-alvo. O submarino acelera e desacelera até lá.
+            val depthError = abyssTargetDepthMeters - abyssDepthMeters
+            val desiredRate = (depthError * 0.55f).coerceIn(-5.0f, 5.0f)
+            abyssDepthRate += (desiredRate - abyssDepthRate) * (dt * 1.8f).coerceIn(0f, 1f)
+            val nextDepth = (abyssDepthMeters + abyssDepthRate * dt).coerceIn(5f, 300f)
+            if ((abyssTargetDepthMeters - abyssDepthMeters) * (abyssTargetDepthMeters - nextDepth) <= 0f) {
+                abyssDepthMeters = abyssTargetDepthMeters
+                abyssDepthRate = 0f
+            } else {
+                abyssDepthMeters = nextDepth
+            }
+
+            // Pressão rompe a tubulação em grande profundidade e consome O2 progressivamente.
+            if (abyssDepthMeters >= 180f) abyssPipeBurst = true
             if (abyssPipeBurst) {
-                val pressureLoad = ((-abyssPodHeight - 0.95f) / 0.40f).coerceIn(0f, 1f)
-                abyssOxygen = (abyssOxygen - dt * (0.55f + pressureLoad * 0.65f)).coerceAtLeast(0f)
+                val pressureLoad = ((abyssDepthMeters - 180f) / 120f).coerceIn(0f, 1f)
+                abyssOxygen = (abyssOxygen - dt * (0.45f + pressureLoad * 0.95f)).coerceAtLeast(0f)
                 if (abyssOxygen <= 0f && abyssMissionState == 0) {
                     abyssMissionState = 2
                     abyssFadeStartNs = nowNs
                 }
             }
 
-            abyssStableTime = if (abs(abyssPodVelocity) < 0.08f) {
+            abyssStableTime = if (abs(abyssDepthRate) < 0.12f) {
                 (abyssStableTime + dt).coerceAtMost(10f)
             } else {
                 (abyssStableTime - dt).coerceAtLeast(0f)
@@ -1642,8 +1660,7 @@ class VrRenderer(
             return
         }
 
-        // Acionamento por contato próximo: não exige pinça nem gesto específico.
-        // O centro da palma (pulso + nós dos quatro dedos) pode simplesmente repousar sobre a placa.
+        // Apoiar a palma em qualquer controle aciona o comando. A placa FOTO fica ao lado das setas.
         abyssActiveButton = -1
         synchronized(st.handLock) {
             for (h in 0..1) {
@@ -1658,22 +1675,31 @@ class VrRenderer(
 
                 var candidate = -1
                 var bestScore = Float.MAX_VALUE
-                for (button in 0 until 6) {
-                    val dx = palmX - abyssPadX[button]
-                    val dy = palmY - abyssPadY[button]
-                    val dz = palmZ - abyssPadTopZ
-                    // Área de acionamento maior que a placa física para facilitar o toque da palma.
-                    if (abs(dx) > 0.22f || abs(dy) > 0.17f || abs(dz) > 0.55f) continue
-                    val score = dx * dx / 0.0484f + dy * dy / 0.0289f + dz * dz / 0.3025f
-                    if (score < bestScore) {
-                        bestScore = score
-                        candidate = button
+
+                val photoDx = palmX - abyssPhotoButtonX
+                val photoDy = palmY - abyssPhotoButtonY
+                val photoDz = palmZ - abyssPhotoButtonZ
+                val overPhoto = abs(photoDx) < 0.24f && abs(photoDy) < 0.20f && abs(photoDz) < 0.48f
+                if (overPhoto) {
+                    candidate = 6
+                } else {
+                    for (button in 0 until 6) {
+                        val dx = palmX - abyssPadX[button]
+                        val dy = palmY - abyssPadY[button]
+                        val dz = palmZ - abyssPadTopZ
+                        if (abs(dx) > 0.22f || abs(dy) > 0.17f || abs(dz) > 0.55f) continue
+                        val score = dx * dx / 0.0484f + dy * dy / 0.0289f + dz * dz / 0.3025f
+                        if (score < bestScore) {
+                            bestScore = score
+                            candidate = button
+                        }
                     }
                 }
 
-                // Um acionamento por entrada na área. Soltar/retirar a mão rearma a placa.
+                // Um acionamento por entrada na área; retirar a palma rearma o botão.
                 if (candidate >= 0 && candidate != abyssHandHeldButton[h]) {
-                    activateAbyssButton(candidate)
+                    if (candidate == 6) takeAbyssPhoto(nowNs)
+                    else activateAbyssButton(candidate)
                     abyssButtonFlash[candidate] = 1f
                 }
                 abyssHandHeldButton[h] = candidate
@@ -1682,14 +1708,28 @@ class VrRenderer(
         }
     }
 
+    private fun takeAbyssPhoto(nowNs: Long) {
+        abyssPhotoCount += 1
+        abyssPhotoFlashUntilNs = nowNs + 220_000_000L
+        abyssPhotoRevealUntilNs = nowNs + 3_000_000_000L
+        // O tesouro está numa depressão do relevo e só aparece numa foto feita a pelo menos 90 m.
+        if (abyssDepthMeters >= 90f) abyssTreasureFound = true
+    }
+
     private fun activateAbyssButton(button: Int) {
         when (button) {
             0 -> abyssPodX = (abyssPodX - 0.16f).coerceIn(-1.2f, 1.2f) // esquerda
             1 -> abyssPodX = (abyssPodX + 0.16f).coerceIn(-1.2f, 1.2f) // direita
             2 -> abyssPodForward = (abyssPodForward + 0.12f).coerceIn(-0.45f, 0.45f) // frente
             3 -> abyssPodForward = (abyssPodForward - 0.12f).coerceIn(-0.45f, 0.45f) // trás
-            4 -> abyssAirLevel = (abyssAirLevel + 0.13f).coerceAtMost(1f) // subir
-            5 -> abyssAirLevel = (abyssAirLevel - 0.13f).coerceAtLeast(0f) // descer
+            4 -> {
+                abyssAirLevel = (abyssAirLevel + 0.10f).coerceAtMost(1f)
+                abyssTargetDepthMeters = (abyssTargetDepthMeters - 35f).coerceAtLeast(5f)
+            } // subir
+            5 -> {
+                abyssAirLevel = (abyssAirLevel - 0.10f).coerceAtLeast(0f)
+                abyssTargetDepthMeters = (abyssTargetDepthMeters + 35f).coerceAtMost(300f)
+            } // descer
         }
     }
 
@@ -2075,16 +2115,90 @@ class VrRenderer(
         drawAbyssSideWord("MAPA", 0f, 0.49f, 0.085f, abyssWhite)
         val coordX = 124 + (abyssPodX * 20f).toInt()
         val coordY = 38 + (abyssPodForward * 20f).toInt()
-        val depthCoord = (abyssPodHeight * 100f).toInt()
+        val depthCoord = abyssDepthMeters.toInt()
         drawAbyssSideWord("X$coordX Y$coordY Z$depthCoord", 0f, -0.61f, 0.042f, abyssWhite)
+    }
+
+    private fun drawAbyssPhotoWindow() {
+        val nowNs = System.nanoTime()
+        val reveal = nowNs <= abyssPhotoRevealUntilNs
+        val flash = nowNs <= abyssPhotoFlashUntilNs
+        val y = 1.492f
+        val left = -1.79f
+        val right = -0.77f
+        val bottom = 0.53f
+        val top = 1.11f
+
+        // Moldura da janela de observação do lado esquerdo.
+        abyssColor(floatArrayOf(0.36f, 0.23f, 0.16f, 1f))
+        drawBone(left, y, bottom, right, y, bottom, 0.020f, 0.020f)
+        drawBone(right, y, bottom, right, y, top, 0.020f, 0.020f)
+        drawBone(right, y, top, left, y, top, 0.020f, 0.020f)
+        drawBone(left, y, top, left, y, bottom, 0.020f, 0.020f)
+
+        if (!reveal) {
+            // Quase escuridão total: ruído muito discreto de um sensor de baixa luz.
+            abyssColor(floatArrayOf(0.07f, 0.12f, 0.14f, 1f))
+            for (i in 0 until 18) {
+                val x = left + 0.07f + ((i * 37) % 89) * 0.010f
+                val z = bottom + 0.05f + ((i * 19) % 48) * 0.010f
+                if (i % 4 == 0) drawSphere(x, y - 0.008f, z, 0.004f)
+            }
+            return
+        }
+
+        if (flash) {
+            // O clarão é curto e fraco para não incomodar dentro do VR Box.
+            abyssColor(floatArrayOf(0.42f, 0.52f, 0.48f, 1f))
+            for (i in 0 until 8) {
+                val x = left + 0.12f + i * 0.105f
+                drawBone(x, y - 0.010f, bottom + 0.08f, x, y - 0.010f, top - 0.08f,
+                    0.0025f, 0.0025f)
+            }
+        }
+
+        if (abyssTreasureFound) {
+            // Foto encontrada: destroço de veículo e baú dourado no leito marinho.
+            abyssColor(floatArrayOf(0.20f, 0.31f, 0.34f, 1f))
+            drawBone(-1.69f, y - 0.018f, 0.67f, -1.40f, y - 0.018f, 0.73f, 0.035f, 0.028f)
+            drawBone(-1.40f, y - 0.018f, 0.73f, -1.18f, y - 0.018f, 0.68f, 0.035f, 0.028f)
+            drawBone(-1.51f, y - 0.018f, 0.73f, -1.51f, y - 0.018f, 0.93f, 0.020f, 0.010f)
+            drawBone(-1.51f, y - 0.018f, 0.93f, -1.36f, y - 0.018f, 0.89f, 0.018f, 0.010f)
+            val gold = floatArrayOf(1.00f, 0.66f, 0.16f, 1f)
+            abyssColor(gold)
+            drawEllipsoid(-1.05f, y - 0.025f, 0.66f, 0.12f, 0.025f, 0.075f)
+            drawBone(-1.17f, y - 0.030f, 0.66f, -0.93f, y - 0.030f, 0.66f, 0.010f, 0.010f)
+            drawBone(-1.17f, y - 0.030f, 0.72f, -0.93f, y - 0.030f, 0.72f, 0.010f, 0.010f)
+            abyssColor(floatArrayOf(0.88f, 0.95f, 0.98f, 1f))
+            drawSphere(-1.04f, y - 0.045f, 0.78f, 0.022f)
+            drawAbyssWord("TESOURO", -1.28f, y - 0.030f, 1.00f, 0.040f, gold)
+        } else {
+            // Foto feita antes da zona de busca: só aparece um vulto distante.
+            abyssColor(floatArrayOf(0.12f, 0.22f, 0.25f, 1f))
+            drawBone(-1.62f, y - 0.018f, 0.63f, -1.30f, y - 0.018f, 0.66f, 0.020f, 0.012f)
+            drawSphere(-1.48f, y - 0.030f, 0.86f, 0.025f)
+        }
+    }
+
+    private fun drawAbyssPhotoButton() {
+        val active = abyssActiveButton == 6 || abyssButtonFlash[6] > 0.05f
+        abyssColor(if (active) abyssRingOk else floatArrayOf(0.24f, 0.30f, 0.31f, 1f))
+        drawEllipsoid(
+            abyssPhotoButtonX, abyssPhotoButtonY, abyssPhotoButtonZ + 0.025f,
+            0.070f, 0.070f, 0.024f
+        )
+        abyssColor(if (active) abyssWhite else abyssCoral2)
+        drawSphere(abyssPhotoButtonX, abyssPhotoButtonY, abyssPhotoButtonZ + 0.050f, 0.020f)
+        drawAbyssWord("FOTO", abyssPhotoButtonX, abyssPhotoButtonY - 0.085f,
+            abyssPhotoButtonZ + 0.035f, 0.040f, abyssWhite)
     }
 
     private fun drawAbyssScene() {
         val t = SystemClock.elapsedRealtime() * 0.001f
-        val depthGauge = ((abyssPodHeight + 1.35f) / 2.70f).coerceIn(0f, 1f)
+        val depthGauge = (abyssDepthMeters / 300f).coerceIn(0f, 1f)
         val ballastGauge = abyssAirLevel.coerceIn(0f, 1f)
-        val pressureGauge = (0.45f + abs(abyssPodVelocity) * 0.22f + abs(abyssCurrent) * 0.35f)
-            .coerceIn(0f, 1f)
+        val pressureGauge = (0.12f + depthGauge * 0.76f + abs(abyssDepthRate) * 0.025f +
+            abs(abyssCurrent) * 0.12f).coerceIn(0f, 1f)
 
         // Paleta ferrugem / aço envelhecido: interior escuro, luzes quentes e CRTs frios.
         val hull = floatArrayOf(0.105f, 0.052f, 0.040f, 1f)
@@ -2255,9 +2369,10 @@ class VrRenderer(
 
         // Três telas no painel: câmera externa, mapa de navegação e sonar.
         GLES20.glUseProgram(roomProg)
+        val windowBlack = floatArrayOf(0.001f, 0.003f, 0.006f, 1f)
         basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f,
-            -1.28f, 1.535f, 0.82f, 0.82f, 0.43f)
-        quadRoom(screen, 8f, 0.82f, 0.43f)
+            -1.28f, 1.535f, 0.82f, 1.02f, 0.58f)
+        quadRoom(windowBlack, 8f, 1.02f, 0.58f)
         basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f,
             1.28f, 1.535f, 0.82f, 0.82f, 0.43f)
         quadRoom(screen, 8f, 0.82f, 0.43f)
@@ -2282,32 +2397,15 @@ class VrRenderer(
         }
 
         beginAbyssOrganic()
+        drawAbyssPhotoWindow()
         drawAbyssWallMap()
 
+        // Botão dedicado para fotografar, ao lado do conjunto de seis setas.
+        drawAbyssPhotoButton()
         // As seis setas discretas na bancada são destacadas quando a mão repousa sobre uma placa.
         drawAbyssBenchControls()
 
-        // Câmera externa: imagem propositalmente granulada e pouco confiável.
-        abyssColor(pale)
-        for (i in 0..10) {
-            val zz = 0.625f + i * 0.038f
-            drawBone(-1.66f, 1.500f, zz, -0.90f, 1.500f, zz, 0.0035f, 0.0035f)
-        }
-        abyssColor(abyssRock)
-        drawBone(-1.54f, 1.495f, 0.64f, -1.48f, 1.495f, 0.80f, 0.027f, 0.012f)
-        drawBone(-1.48f, 1.495f, 0.80f, -1.42f, 1.495f, 0.93f, 0.030f, 0.010f)
-        drawBone(-1.42f, 1.495f, 0.93f, -1.34f, 1.495f, 0.70f, 0.035f, 0.012f)
-        drawBone(-1.34f, 1.495f, 0.70f, -1.24f, 1.495f, 0.64f, 0.035f, 0.012f)
-        drawBone(-1.24f, 1.495f, 0.64f, -1.18f, 1.495f, 0.88f, 0.030f, 0.012f)
-        drawBone(-1.18f, 1.495f, 0.88f, -1.11f, 1.495f, 0.72f, 0.035f, 0.012f)
-        abyssColor(abyssWhite)
-        for (i in 0 until 24) {
-            val px = -1.66f + ((i * 37) % 73) * 0.0102f
-            val pz = 0.625f + ((i * 19) % 37) * 0.0102f
-            if (i % 3 == 0) drawSphere(px, 1.488f, pz, 0.006f)
-        }
-        abyssColor(abyssCoral2)
-        drawBone(-1.60f, 1.487f, 0.67f, -1.57f, 1.487f, 0.67f, 0.010f, 0.010f)
+        // A janela esquerda permanece escura; o instantâneo é desenhado por drawAbyssPhotoWindow().
 
         // Sonar central com varredura, círculos de alcance e ecos.
         abyssColor(abyssBlue)

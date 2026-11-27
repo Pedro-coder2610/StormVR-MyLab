@@ -1730,7 +1730,7 @@ class VrRenderer(
         // Seta gravada no botão: azul sobe, laranja desce.
         drawAbyssArrow(cx, y - 0.255f, cz, positive, abyssWhite)
 
-        // O aro se completa durante os 0,8 s de seleção pelo olhar.
+        // O aro dá feedback visual do acionamento por pinça.
         val filled = (progress.coerceIn(0f, 1f) * 32f).toInt()
         for (i in 0 until 32) {
             val a0 = (i * 2.0 * PI / 32.0).toFloat()

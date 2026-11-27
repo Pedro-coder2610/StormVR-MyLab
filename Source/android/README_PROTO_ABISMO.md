@@ -6,9 +6,9 @@ O modo Abismo reutiliza o renderizador estéreo do StormVR e o giroscópio do ap
 
 A cena é inteiramente vista de dentro de um submarino compacto, sem janela direta para o oceano. O casco fechado tem piso e teto metálicos, escotilha estanque, nervuras estruturais, tubulações de lastro e refrigeração, braçadeiras, cabos, armários laterais, cilindros, bateria, luminária e console frontal.
 
-O console frontal reúne o sonar e uma janela de observação à esquerda. A janela permanece quase totalmente preta, com ruído muito discreto, porque há pouca luz no fundo do mar. Ao lado das seis setas da bancada há um botão FOTO: apoiar a palma nele aciona uma captura. O instantâneo fica visível por alguns segundos e depois a janela volta a escurecer. A partir de 90 m de profundidade a foto pode revelar um destroço e um baú escondido; em águas rasas aparecem apenas vultos. Para orientar o jogador, o painel junto ao botão mostra **DESCA 90M** antes da meta e muda para **FOTO 90M** em verde ao atingir a profundidade necessária; o próprio botão também acende em verde.
+O console frontal reúne o sonar e uma janela de observação à esquerda. A janela permanece quase totalmente preta, com ruído muito discreto, porque há pouca luz no fundo do mar. Ao lado das seis setas da bancada há um botão FOTO: apoiar a palma nele aciona uma captura. O instantâneo fica visível por alguns segundos e depois a janela volta a escurecer. A indicação **META 90M** aparece acima da janela; ao chegar a 90 m, muda para **FOTO 90M** em verde. A partir dessa profundidade a foto pode revelar um destroço e um baú escondido; em águas rasas aparecem apenas vultos. Para orientar o jogador, o painel junto ao botão mostra **DESCA 90M** antes da meta e muda para **FOTO 90M** em verde ao atingir a profundidade necessária; o próprio botão também acende em verde.
 
-Há também mostradores analógicos, LEDs de lastro e luzes de estado. As telas e leituras são elementos visuais de protótipo; ainda não representam sensores ou uma missão navegável completa.
+Há também mostradores analógicos, LEDs de lastro e luzes de estado. O mapa na parede direita foi ampliado para facilitar a leitura. O mergulho sempre reinicia com o tanque de O2 cheio, exibido como **O2 MAX**, com 30 segundos de reserva e dez segmentos iluminados. As telas e leituras são elementos visuais de protótipo; ainda não representam sensores ou uma missão navegável completa.
 
 A atmosfera é inspirada em jogos de horror submarino de cabine fechada, sem reproduzir personagens, arte, mapas ou interfaces protegidas de *Iron Lung*.
 
@@ -42,7 +42,7 @@ Ao fotografar a área de busca a partir de 90 m, a janela revela um destroço e 
 
 ## Estado inicial da missão
 
-O submarino começa a **8 m de profundidade**, perto da superfície, com 30 segundos de O2. A profundidade-alvo começa em 8 m e muda em passos de 35 m pelas setas subir/descer. O veículo pode descer até 300 m; em 180 m a pressão rompe uma tubulação e inicia o consumo de O2. Ao retornar a até 10 m antes do esgotamento, o cano é selado e a reserva volta a 30 segundos. O indicador de lastro é separado do O2.
+O submarino começa a **8 m de profundidade**, perto da superfície, com o tanque de O2 cheio: **30 segundos**, mostrado como O2 MAX e dez segmentos iluminados. Ao iniciar um novo mergulho, profundidade, posição, fotografia e reserva de oxigênio são reiniciadas. A profundidade-alvo começa em 8 m e muda em passos de 35 m pelas setas subir/descer. O veículo pode descer até 300 m; em 180 m a pressão rompe uma tubulação e inicia o consumo de O2. Ao retornar a até 10 m antes do esgotamento, o cano é selado e a reserva volta a 30 segundos. O indicador de lastro é separado do O2.
 
 ## O que ainda não está pronto
 

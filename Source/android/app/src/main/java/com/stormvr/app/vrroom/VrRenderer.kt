@@ -681,23 +681,24 @@ class VrRenderer(
     private val abyssRing = floatArrayOf(1.00f, 0.80f, 0.25f, 1f)
     private val abyssRingOk = floatArrayOf(0.20f, 1.00f, 0.58f, 1f)
     // Estado da missão: física simplificada, com movimento lateral, longitudinal e vertical.
-    private var abyssAirLevel = 0.50f
+    private var abyssAirLevel = 0.72f
     private var abyssPodVelocity = 0f
-    private var abyssPodHeight = -0.40f
+    private var abyssPodHeight = 1.12f
     private var abyssPodX = 0f
     private var abyssPodForward = 0f
     private var abyssCurrent = 0f
-    private var abyssOxygen = 180f
+    private var abyssOxygen = 300f
     private var abyssPipeBurst = false
     private var abyssMissionTime = 0f
     private var abyssStableTime = 0f
     private var abyssMissionState = 0 // 0 em andamento, 1 resgate concluído, 2 oxigênio esgotado
     private var abyssLastPhysicsNs = 0L
 
-    // Seis placas direcionais no topo da bancada: esquerda/direita, frente/trás, subir/descer.
-    private val abyssPadX = floatArrayOf(-0.80f, -0.48f, -0.16f, 0.16f, 0.48f, 0.80f)
-    private val abyssPadY = 0.82f
-    private val abyssPadTopZ = -0.32f
+    // Seis placas compactas em uma área de alcance natural, duas colunas por três linhas.
+    // Cada linha corresponde a um eixo: X (lados), Y (frente/trás), Z (subir/descer).
+    private val abyssPadX = floatArrayOf(-0.13f, 0.13f, -0.13f, 0.13f, -0.13f, 0.13f)
+    private val abyssPadY = floatArrayOf(0.46f, 0.46f, 0.60f, 0.60f, 0.74f, 0.74f)
+    private val abyssPadTopZ = -0.405f
     private var abyssActiveButton = -1
     private val abyssHandHeldButton = IntArray(2) { -1 }
     private val abyssButtonFlash = FloatArray(6)
@@ -1641,42 +1642,36 @@ class VrRenderer(
             return
         }
 
-        // A ponta do indicador precisa chegar perto de uma placa e fazer pinça ou apontar.
-        // A mão pode mover-se para outra placa sem exigir reiniciar o rastreamento.
+        // Acionamento por contato próximo: não exige pinça nem gesto específico.
+        // O centro da palma (pulso + nós dos quatro dedos) pode simplesmente repousar sobre a placa.
         abyssActiveButton = -1
         synchronized(st.handLock) {
             for (h in 0..1) {
-                val valid = st.handValid[h]
-                val gesture = st.handGesture[h]
-                val activating = valid && (
-                    (st.handPinch[h] && gesture == HandGesture.PINCH) ||
-                    gesture == HandGesture.POINT
-                )
-                if (!activating) {
+                if (!st.handValid[h]) {
                     abyssHandHeldButton[h] = -1
                     continue
                 }
+                val pts = st.handPts[h]
+                val palmX = (pts[0] + pts[15] + pts[27] + pts[39] + pts[51]) * 0.2f
+                val palmY = (pts[1] + pts[16] + pts[28] + pts[40] + pts[52]) * 0.2f
+                val palmZ = (pts[2] + pts[17] + pts[29] + pts[41] + pts[53]) * 0.2f
 
-                val tip = st.handPts[h]
-                val tx = tip[8 * 3]
-                val ty = tip[8 * 3 + 1]
-                val tz = tip[8 * 3 + 2]
                 var candidate = -1
                 var bestScore = Float.MAX_VALUE
-
                 for (button in 0 until 6) {
-                    val dx = tx - abyssPadX[button]
-                    val dy = ty - abyssPadY
-                    val dz = tz - abyssPadTopZ
-                    // Margem ampla para acomodar pequenas imprecisões do rastreamento.
-                    if (abs(dx) > 0.20f || abs(dy) > 0.22f || abs(dz) > 0.36f) continue
-                    val score = dx * dx / 0.04f + dy * dy / 0.0484f + dz * dz / 0.1296f
+                    val dx = palmX - abyssPadX[button]
+                    val dy = palmY - abyssPadY[button]
+                    val dz = palmZ - abyssPadTopZ
+                    // Área de acionamento maior que a placa física para facilitar o toque da palma.
+                    if (abs(dx) > 0.22f || abs(dy) > 0.17f || abs(dz) > 0.55f) continue
+                    val score = dx * dx / 0.0484f + dy * dy / 0.0289f + dz * dz / 0.3025f
                     if (score < bestScore) {
                         bestScore = score
                         candidate = button
                     }
                 }
 
+                // Um acionamento por entrada na área. Soltar/retirar a mão rearma a placa.
                 if (candidate >= 0 && candidate != abyssHandHeldButton[h]) {
                     activateAbyssButton(candidate)
                     abyssButtonFlash[candidate] = 1f
@@ -1854,69 +1849,234 @@ class VrRenderer(
     }
 
     private fun drawAbyssBenchArrow(cx: Float, cy: Float, z: Float, direction: Int, color: FloatArray) {
-        val dx: Float
-        val dy: Float
-        val dz: Float
-        when (direction) {
-            0 -> { dx = -1f; dy = 0f; dz = 0f } // esquerda
-            1 -> { dx = 1f; dy = 0f; dz = 0f }  // direita
-            2 -> { dx = 0f; dy = 1f; dz = 0f }  // frente
-            3 -> { dx = 0f; dy = -1f; dz = 0f } // trás
-            4 -> { dx = 0f; dy = 0f; dz = 1f }  // subir
-            else -> { dx = 0f; dy = 0f; dz = -1f } // descer
+        // Todas as setas ficam gravadas na face horizontal da placa.
+        val dx = when (direction) {
+            0 -> -1f
+            1 -> 1f
+            else -> 0f
         }
-        val sx = if (direction == 2 || direction == 3) 1f else 1f
-        val sy = if (direction == 0 || direction == 1) 1f else 0f
-        val sz = 0f
-        val len = 0.078f
-        val head = 0.052f
-        val wing = 0.042f
+        val dy = when (direction) {
+            2, 4 -> 1f
+            3, 5 -> -1f
+            else -> 0f
+        }
+        val len = 0.040f
+        val head = 0.027f
+        val wing = 0.023f
         val tipX = cx + dx * len
         val tipY = cy + dy * len
-        val tipZ = z + dz * len
-        val tailX = cx - dx * len
-        val tailY = cy - dy * len
-        val tailZ = z - dz * len
+        val baseX = tipX - dx * head
+        val baseY = tipY - dy * head
+        val perpX = -dy
+        val perpY = dx
         abyssColor(color)
-        drawBone(tailX, tailY, tailZ, tipX, tipY, tipZ, 0.024f, 0.020f)
-        // Aletas da seta usam um eixo perpendicular ao sentido de movimento.
-        val px = if (direction == 2 || direction == 3 || direction == 4 || direction == 5) 1f else 0f
-        val py = if (direction == 0 || direction == 1) 1f else 0f
-        val pz = 0f
-        val bx = tipX - dx * head
-        val by = tipY - dy * head
-        val bz = tipZ - dz * head
-        drawBone(bx + px * wing, by + py * wing, bz + pz * wing,
-            tipX, tipY, tipZ, 0.020f, 0.016f)
-        drawBone(bx - px * wing, by - py * wing, bz - pz * wing,
-            tipX, tipY, tipZ, 0.020f, 0.016f)
+        drawBone(cx - dx * len, cy - dy * len, z, tipX, tipY, z, 0.012f, 0.010f)
+        drawBone(baseX + perpX * wing, baseY + perpY * wing, z, tipX, tipY, z, 0.011f, 0.009f)
+        drawBone(baseX - perpX * wing, baseY - perpY * wing, z, tipX, tipY, z, 0.011f, 0.009f)
     }
 
     private fun drawAbyssBenchControls() {
-        val arrowColor = abyssWhite
-        val frameColor = floatArrayOf(0.18f, 0.23f, 0.23f, 1f)
+        val frameColor = floatArrayOf(0.18f, 0.24f, 0.25f, 1f)
         for (button in 0 until 6) {
             val cx = abyssPadX[button]
-            val cy = abyssPadY
-            val z = abyssPadTopZ + 0.012f
-            val halfW = 0.1275f
-            val halfD = 0.1425f
-            val active = abyssActiveButton == button
-            val color = if (active || abyssButtonFlash[button] > 0.05f) abyssRingOk else frameColor
-            abyssColor(color)
-            drawBone(cx - halfW, cy - halfD, z, cx + halfW, cy - halfD, z, 0.012f, 0.012f)
-            drawBone(cx + halfW, cy - halfD, z, cx + halfW, cy + halfD, z, 0.012f, 0.012f)
-            drawBone(cx + halfW, cy + halfD, z, cx - halfW, cy + halfD, z, 0.012f, 0.012f)
-            drawBone(cx - halfW, cy + halfD, z, cx - halfW, cy - halfD, z, 0.012f, 0.012f)
-            abyssColor(if (active || abyssButtonFlash[button] > 0.05f) abyssRingOk else arrowColor)
-            drawAbyssBenchArrow(cx, cy, z + 0.012f, button, arrowColor)
+            val cy = abyssPadY[button]
+            val z = abyssPadTopZ + 0.004f
+            val halfW = 0.075f
+            val halfD = 0.064f
+            val active = abyssActiveButton == button || abyssButtonFlash[button] > 0.05f
+            val edge = if (active) abyssRingOk else frameColor
+            abyssColor(edge)
+            drawBone(cx - halfW, cy - halfD, z, cx + halfW, cy - halfD, z, 0.006f, 0.006f)
+            drawBone(cx + halfW, cy - halfD, z, cx + halfW, cy + halfD, z, 0.006f, 0.006f)
+            drawBone(cx + halfW, cy + halfD, z, cx - halfW, cy + halfD, z, 0.006f, 0.006f)
+            drawBone(cx - halfW, cy + halfD, z, cx - halfW, cy - halfD, z, 0.006f, 0.006f)
+            val arrowColor = if (button >= 4) abyssCoral2 else abyssWhite
+            drawAbyssBenchArrow(cx, cy, z + 0.008f, button, arrowColor)
             for (sx in floatArrayOf(-1f, 1f)) {
                 for (sy in floatArrayOf(-1f, 1f)) {
                     abyssColor(frameColor)
-                    drawSphere(cx + sx * 0.105f, cy + sy * 0.12f, z + 0.008f, 0.012f)
+                    drawSphere(cx + sx * 0.061f, cy + sy * 0.052f, z + 0.006f, 0.0045f)
                 }
             }
         }
+    }
+
+    private fun drawAbyssSideWord(
+        word: String, centerU: Float, baseV: Float, height: Float, color: FloatArray
+    ) {
+        val w = height * 0.62f
+        val gap = height * 0.20f
+        val total = word.length * (w + gap) - gap
+        var u0 = centerU - total * 0.5f
+        val panelX = 1.985f
+        val centerY = 0.12f
+        val centerZ = 0.86f
+        abyssColor(color)
+        for (ch in word) {
+            val segments = when (ch) {
+                'S' -> intArrayOf(0, 1, 3, 5, 6)
+                'U' -> intArrayOf(1, 2, 4, 5, 6)
+                'B' -> intArrayOf(0, 1, 2, 3, 4, 5, 6)
+                'I' -> intArrayOf(0, 6, 8)
+                'R' -> intArrayOf(0, 1, 2, 3, 4, 7)
+                'D' -> intArrayOf(0, 1, 2, 4, 5, 6)
+                'E' -> intArrayOf(0, 1, 3, 4, 6)
+                'C' -> intArrayOf(0, 1, 4, 6)
+                'A' -> intArrayOf(0, 1, 2, 3, 4, 5)
+                'O', '0' -> intArrayOf(0, 1, 2, 4, 5, 6)
+                '1' -> intArrayOf(2, 5)
+                '2' -> intArrayOf(0, 2, 3, 4, 6)
+                '3' -> intArrayOf(0, 2, 3, 5, 6)
+                '4' -> intArrayOf(1, 2, 3, 5)
+                '5' -> intArrayOf(0, 1, 3, 5, 6)
+                '6' -> intArrayOf(0, 1, 3, 4, 5, 6)
+                '7' -> intArrayOf(0, 2, 5)
+                '8' -> intArrayOf(0, 1, 2, 3, 4, 5, 6)
+                '9' -> intArrayOf(0, 1, 2, 3, 5, 6)
+                'X' -> intArrayOf(9, 10)
+                'Y' -> intArrayOf(9, 10, 8)
+                'Z' -> intArrayOf(0, 2, 3, 4, 6, 10)
+                'M' -> intArrayOf(1, 2, 8, 9, 10)
+                'P' -> intArrayOf(0, 1, 2, 3, 4)
+                '-' -> intArrayOf(3)
+                ' ' -> intArrayOf()
+                else -> intArrayOf()
+            }
+            for (segment in segments) {
+                val u1: Float
+                val v1: Float
+                val u2: Float
+                val v2: Float
+                when (segment) {
+                    0 -> { u1 = u0; v1 = baseV + height; u2 = u0 + w; v2 = baseV + height }
+                    1 -> { u1 = u0; v1 = baseV + height; u2 = u0; v2 = baseV + height * 0.5f }
+                    2 -> { u1 = u0 + w; v1 = baseV + height; u2 = u0 + w; v2 = baseV + height * 0.5f }
+                    3 -> { u1 = u0; v1 = baseV + height * 0.5f; u2 = u0 + w; v2 = baseV + height * 0.5f }
+                    4 -> { u1 = u0; v1 = baseV + height * 0.5f; u2 = u0; v2 = baseV }
+                    5 -> { u1 = u0 + w; v1 = baseV + height * 0.5f; u2 = u0 + w; v2 = baseV }
+                    6 -> { u1 = u0; v1 = baseV; u2 = u0 + w; v2 = baseV }
+                    7 -> { u1 = u0 + w * 0.48f; v1 = baseV + height * 0.46f; u2 = u0 + w; v2 = baseV }
+                    8 -> { u1 = u0 + w * 0.5f; v1 = baseV + height; u2 = u0 + w * 0.5f; v2 = baseV }
+                    9 -> { u1 = u0; v1 = baseV + height; u2 = u0 + w; v2 = baseV }
+                    else -> { u1 = u0; v1 = baseV; u2 = u0 + w; v2 = baseV + height }
+                }
+                drawBone(
+                    panelX, centerY - u1, centerZ + v1,
+                    panelX, centerY - u2, centerZ + v2,
+                    0.0045f, 0.0045f
+                )
+            }
+            u0 += w + gap
+        }
+    }
+
+    private fun drawAbyssWallMap() {
+        val panelX = 1.985f
+        val centerY = 0.12f
+        val centerZ = 0.86f
+        fun mapLine(u1: Float, v1: Float, u2: Float, v2: Float, radius: Float) {
+            drawBone(
+                panelX, centerY - u1, centerZ + v1,
+                panelX, centerY - u2, centerZ + v2,
+                radius, radius
+            )
+        }
+        val border = abyssWhite
+        abyssColor(border)
+        mapLine(-0.59f, -0.66f, 0.59f, -0.66f, 0.014f)
+        mapLine(0.59f, -0.66f, 0.59f, 0.66f, 0.014f)
+        mapLine(0.59f, 0.66f, -0.59f, 0.66f, 0.014f)
+        mapLine(-0.59f, 0.66f, -0.59f, -0.66f, 0.014f)
+
+        // Moldura interna e malha cartográfica.
+        abyssColor(abyssRock)
+        for (i in 0..6) {
+            val u = -0.48f + i * 0.16f
+            mapLine(u, -0.48f, u, 0.42f, 0.0045f)
+        }
+        for (i in 0..5) {
+            val v = -0.40f + i * 0.16f
+            mapLine(-0.49f, v, 0.49f, v, 0.0045f)
+        }
+
+        // Curvas batimétricas irregulares, como um mapa de relevo do fundo oceânico.
+        val contourA = floatArrayOf(0.08f, 0.42f, 0.54f, 1f)
+        val contourB = floatArrayOf(0.04f, 0.26f, 0.38f, 1f)
+        for (ring in 0..4) {
+            abyssColor(if (ring % 2 == 0) contourA else contourB)
+            val rx = 0.12f + ring * 0.075f
+            val rz = 0.10f + ring * 0.061f
+            for (i in 0 until 48) {
+                val a0 = i * (2f * PI.toFloat() / 48f)
+                val a1 = (i + 1) * (2f * PI.toFloat() / 48f)
+                val wobble0 = 1f + 0.10f * sin(a0 * 3f + ring) + 0.045f * cos(a0 * 5f - ring)
+                val wobble1 = 1f + 0.10f * sin(a1 * 3f + ring) + 0.045f * cos(a1 * 5f - ring)
+                val u0 = -0.06f + rx * cos(a0) * wobble0
+                val v0 = -0.06f + rz * sin(a0) * wobble0
+                val u1 = -0.06f + rx * cos(a1) * wobble1
+                val v1 = -0.06f + rz * sin(a1) * wobble1
+                mapLine(u0, v0, u1, v1, 0.0055f)
+            }
+        }
+
+        // Um segundo desnível ao norte torna o desenho menos parecido com uma simples rota linear.
+        abyssColor(contourB)
+        for (i in 0 until 32) {
+            val a0 = i * (2f * PI.toFloat() / 32f)
+            val a1 = (i + 1) * (2f * PI.toFloat() / 32f)
+            val u0 = 0.34f + 0.11f * cos(a0) * (1f + 0.08f * sin(3f * a0))
+            val v0 = 0.25f + 0.12f * sin(a0)
+            val u1 = 0.34f + 0.11f * cos(a1) * (1f + 0.08f * sin(3f * a1))
+            val v1 = 0.25f + 0.12f * sin(a1)
+            mapLine(u0, v0, u1, v1, 0.0045f)
+        }
+
+        // Posição atual e destino, ligados por uma trilha tracejada.
+        val currentU = (abyssPodX / 1.2f * 0.43f).coerceIn(-0.44f, 0.44f)
+        val currentV = (abyssPodForward / 0.45f * 0.39f).coerceIn(-0.40f, 0.40f)
+        val targetU = 0.43f
+        val targetV = 0.39f
+        abyssColor(abyssCoral2)
+        for (i in 0 until 12 step 2) {
+            val t0 = i / 12f
+            val t1 = (i + 1) / 12f
+            mapLine(
+                currentU + (targetU - currentU) * t0,
+                currentV + (targetV - currentV) * t0,
+                currentU + (targetU - currentU) * t1,
+                currentV + (targetV - currentV) * t1,
+                0.012f
+            )
+        }
+
+        // Anel da posição atual e anel pulsante do ponto de destino.
+        abyssColor(abyssRingOk)
+        for (i in 0 until 24) {
+            val a0 = i * (2f * PI.toFloat() / 24f)
+            val a1 = (i + 1) * (2f * PI.toFloat() / 24f)
+            mapLine(
+                currentU + cos(a0) * 0.045f, currentV + sin(a0) * 0.045f,
+                currentU + cos(a1) * 0.045f, currentV + sin(a1) * 0.045f,
+                0.010f
+            )
+        }
+        abyssColor(abyssCoral2)
+        val pulse = 0.045f + sin(SystemClock.elapsedRealtime() * 0.004f) * 0.008f
+        for (i in 0 until 24) {
+            val a0 = i * (2f * PI.toFloat() / 24f)
+            val a1 = (i + 1) * (2f * PI.toFloat() / 24f)
+            mapLine(
+                targetU + cos(a0) * pulse, targetV + sin(a0) * pulse,
+                targetU + cos(a1) * pulse, targetV + sin(a1) * pulse,
+                0.010f
+            )
+        }
+
+        drawAbyssSideWord("MAPA", 0f, 0.49f, 0.085f, abyssWhite)
+        val coordX = 124 + (abyssPodX * 20f).toInt()
+        val coordY = 38 + (abyssPodForward * 20f).toInt()
+        val depthCoord = (abyssPodHeight * 100f).toInt()
+        drawAbyssSideWord("X$coordX Y$coordY Z$depthCoord", 0f, -0.61f, 0.042f, abyssWhite)
     }
 
     private fun drawAbyssScene() {
@@ -1972,9 +2132,9 @@ class VrRenderer(
         box(1.78f, -1.18f, -1.22f, 0.78f, 0.66f, 0.48f, hullAlt)
         box(0f, -0.85f, 1.86f, 0.72f, 0.42f, 0.20f, hullAlt)
         // Apoio rebaixado para os comandos: operáveis com as mãos perto do colo, sem braços erguidos.
-        box(0f, 0.82f, -0.66f, 1.96f, 0.42f, 0.48f, panel)
-        box(-0.78f, 1.00f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
-        box(0.78f, 1.00f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
+        box(0f, 0.60f, -0.68f, 1.02f, 0.42f, 0.48f, panel)
+        box(-0.43f, 0.72f, -0.50f, 0.12f, 0.24f, 0.32f, hullAlt)
+        box(0.43f, 0.72f, -0.50f, 0.12f, 0.24f, 0.32f, hullAlt)
 
         // Escotilha traseira estanque — sem janela para o exterior.
         beginAbyssOrganic()
@@ -2107,56 +2267,24 @@ class VrRenderer(
             0f, 1.535f, 0.02f, 1.30f, 0.92f)
         quadRoom(screen, 8f, 1.30f, 0.92f)
 
-        // MAPA PRINCIPAL: placa larga e contrastada, acima dos instrumentos e no centro da parede.
-        basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f,
-            0f, 1.505f, 1.48f, 1.90f, 0.72f)
-        quadRoom(hullAlt, 8f, 1.90f, 0.72f)
+        // Mapa cartográfico físico montado na parede à direita do piloto.
+        val mapPanel = floatArrayOf(0.008f, 0.036f, 0.047f, 1f)
+        basis(0f, -1f, 0f, 0f, 0f, 1f, -1f, 0f, 0f,
+            2.02f, 0.12f, 0.86f, 1.18f, 1.34f)
+        quadRoom(mapPanel, 8f, 1.18f, 1.34f)
 
-        // Seis placas quadradas de metal claro, no topo da bancada, inspiradas na referência enviada.
-        val padMetal = floatArrayOf(0.58f, 0.62f, 0.61f, 1f)
-        val padDark = floatArrayOf(0.22f, 0.27f, 0.27f, 1f)
+        // Seis teclas/setas pequenas e baixas sobre a bancada, perto das mãos em repouso.
+        val padMetal = floatArrayOf(0.36f, 0.42f, 0.41f, 1f)
         for (button in 0 until 6) {
-            box(abyssPadX[button], abyssPadY, -0.37f,
-                0.255f, 0.285f, 0.10f,
-                if (button % 2 == 0) padMetal else padDark)
+            box(abyssPadX[button], abyssPadY[button], abyssPadTopZ - 0.025f,
+                0.15f, 0.13f, 0.05f,
+                if (button >= 4) floatArrayOf(0.38f, 0.30f, 0.20f, 1f) else padMetal)
         }
 
         beginAbyssOrganic()
+        drawAbyssWallMap()
 
-        // Moldura externa e título do mapa para que ele seja fácil de localizar no cockpit.
-        abyssColor(abyssWhite)
-        drawBone(-0.94f, 1.470f, 1.10f, 0.94f, 1.470f, 1.10f, 0.022f, 0.022f)
-        drawBone(-0.94f, 1.470f, 1.10f, -0.94f, 1.470f, 1.88f, 0.022f, 0.022f)
-        drawBone(0.94f, 1.470f, 1.10f, 0.94f, 1.470f, 1.88f, 0.022f, 0.022f)
-        drawBone(-0.94f, 1.470f, 1.88f, 0.94f, 1.470f, 1.88f, 0.022f, 0.022f)
-        drawAbyssWord("ROTA", 0f, 1.465f, 1.70f, 0.10f, abyssWhite)
-        abyssColor(abyssRock)
-        for (i in 1..7) {
-            val x = -0.84f + i * 0.21f
-            drawBone(x, 1.474f, 1.18f, x, 1.474f, 1.67f, 0.008f, 0.008f)
-        }
-        for (i in 1..4) {
-            val z = 1.18f + i * 0.10f
-            drawBone(-0.90f, 1.474f, z, 0.90f, 1.474f, z, 0.008f, 0.008f)
-        }
-        val mapX = (-0.68f + ((abyssPodX + 1.2f) / 2.4f) * 1.28f).coerceIn(-0.70f, 0.60f)
-        val mapY = (1.25f + ((abyssPodForward + 0.45f) / 0.90f) * 0.30f).coerceIn(1.24f, 1.57f)
-        abyssColor(abyssBlue)
-        drawBone(mapX, 1.458f, mapY, mapX + (0.66f - mapX) * 0.45f, 1.458f,
-            mapY + (1.56f - mapY) * 0.45f, 0.028f, 0.028f)
-        drawBone(mapX + (0.66f - mapX) * 0.45f, 1.458f,
-            mapY + (1.56f - mapY) * 0.45f, 0.66f, 1.458f, 1.56f, 0.028f, 0.028f)
-        abyssColor(abyssRingOk)
-        drawSphere(mapX, 1.445f, mapY, 0.065f)   // posição atual do submarino
-        abyssColor(abyssCoral2)
-        drawSphere(0.66f, 1.445f, 1.56f, 0.070f) // destino
-        val coordX = 124 + (abyssPodX * 20f).toInt()
-        val coordY = 38 + (abyssPodForward * 20f).toInt()
-        val depthCoord = (abyssPodHeight * 100f).toInt()
-        abyssColor(abyssWhite)
-        drawAbyssWord("X$coordX Y$coordY Z$depthCoord", 0f, 1.455f, 1.13f, 0.085f, abyssWhite)
-
-        // As placas de seta da bancada: seis comandos físicos independentes.
+        // As seis setas discretas na bancada são destacadas quando a mão repousa sobre uma placa.
         drawAbyssBenchControls()
 
         // Câmera externa: imagem propositalmente granulada e pouco confiável.
@@ -2180,23 +2308,6 @@ class VrRenderer(
         }
         abyssColor(abyssCoral2)
         drawBone(-1.60f, 1.487f, 0.67f, -1.57f, 1.487f, 0.67f, 0.010f, 0.010f)
-
-        // Mapa incompleto com grelha, rota tracejada e ponto de interesse intermitente.
-        abyssColor(abyssRock)
-        for (i in 0..5) {
-            val xx = 0.91f + i * 0.148f
-            drawBone(xx, 1.500f, 0.62f, xx, 1.500f, 1.02f, 0.004f, 0.004f)
-        }
-        for (i in 0..4) {
-            val zz = 0.62f + i * 0.10f
-            drawBone(0.91f, 1.500f, zz, 1.65f, 1.500f, zz, 0.004f, 0.004f)
-        }
-        abyssColor(abyssCoral2)
-        drawBone(1.00f, 1.487f, 0.70f, 1.15f, 1.487f, 0.77f, 0.012f, 0.012f)
-        drawBone(1.15f, 1.487f, 0.77f, 1.34f, 1.487f, 0.73f, 0.012f, 0.012f)
-        drawBone(1.34f, 1.487f, 0.73f, 1.52f, 1.487f, 0.91f, 0.012f, 0.012f)
-        abyssColor(abyssRingOk)
-        drawSphere(1.52f, 1.480f, 0.91f + sin(t * 2f) * 0.012f, 0.022f)
 
         // Sonar central com varredura, círculos de alcance e ecos.
         abyssColor(abyssBlue)
@@ -2223,8 +2334,8 @@ class VrRenderer(
         drawAbyssGauge(1.27f, 1.47f, 0.02f, 0.31f, pressureGauge, abyssCoral2)
 
         // Indicador de oxigênio aparece no console e só cai depois do rompimento por pressão.
-        val oxygenRatio = (abyssOxygen / 180f).coerceIn(0f, 1f)
-        val oxygenColor = if (abyssOxygen < 35f) abyssCoral else if (abyssOxygen < 75f) abyssCoral2 else abyssRingOk
+        val oxygenRatio = (abyssOxygen / 300f).coerceIn(0f, 1f)
+        val oxygenColor = if (abyssOxygen < 60f) abyssCoral else if (abyssOxygen < 120f) abyssCoral2 else abyssRingOk
         drawAbyssWord("O2", -0.43f, 1.455f, -0.70f, 0.075f, oxygenColor)
         drawAbyssWord(abyssOxygen.toInt().toString(), 0.28f, 1.455f, -0.70f, 0.075f, oxygenColor)
         for (i in 0 until 10) {
@@ -2236,7 +2347,8 @@ class VrRenderer(
             drawAbyssWord("SUBA", 0f, 1.445f, -0.98f, 0.105f, abyssCoral2)
         }
 
-        // Indicador de lastro: LEDs acendem conforme a quantidade de ar.
+        // Indicador separado de LASTRO (não confundir com o O2, que começa cheio).
+        drawAbyssWord("AR", 0f, 1.46f, 0.76f, 0.055f, abyssBlue)
         for (i in 0 until 8) {
             abyssColor(if (i < ballastGauge * 8f) abyssBlue else abyssRock)
             drawSphere(-0.28f + i * 0.08f, 1.46f, 0.56f, 0.022f)

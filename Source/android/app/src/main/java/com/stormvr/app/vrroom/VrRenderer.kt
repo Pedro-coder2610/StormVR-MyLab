@@ -1742,6 +1742,7 @@ class VrRenderer(
                 'X' -> intArrayOf(9, 10)
                 'Y' -> intArrayOf(9, 10, 8)
                 'Z' -> intArrayOf(0, 2, 3, 4, 6, 10)
+                'T' -> intArrayOf(0, 8)
                 '-' -> intArrayOf(3)
                 ' ' -> intArrayOf()
                 else -> intArrayOf()

@@ -16,7 +16,7 @@ A atmosfera é inspirada em jogos de horror submarino de cabine fechada, sem rep
 
 O olhar e o giroscópio servem apenas para olhar ao redor. Eles **não acionam** os comandos.
 
-- Na primeira utilização, mostre **as duas mãos juntas** à câmera por um instante. O jogo calibra esquerda/direita antes de aceitar uma mão isolada.
+- Na primeira utilização, mostre **as duas mãos abertas juntas** à câmera, com boa iluminação e a cerca de 20–60 cm. No Abismo, o MediaPipe fica configurado para detectar até duas mãos durante a calibração; após reconhecer esquerda/direita, uma mão isolada já pode ser usada. O diagnóstico indica `calibração: mostre as duas` ou `calibração: OK`, e uma mensagem confirma quando terminar.
 - A bancada tem seis placas retangulares com setas, no estilo da referência enviada:
   - **← / →:** deslocam a posição lateral X;
   - **frente / trás:** alteram a posição Y no mapa;

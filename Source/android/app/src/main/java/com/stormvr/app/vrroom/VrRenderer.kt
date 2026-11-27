@@ -2009,6 +2009,8 @@ class VrRenderer(
                 'R' -> intArrayOf(0, 1, 2, 3, 4, 7)
                 'D' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 'E' -> intArrayOf(0, 1, 3, 4, 6)
+                'F' -> intArrayOf(0, 1, 3, 4)
+                'T' -> intArrayOf(0, 8)
                 'C' -> intArrayOf(0, 1, 4, 6)
                 'A' -> intArrayOf(0, 1, 2, 3, 4, 5)
                 'O', '0' -> intArrayOf(0, 1, 2, 4, 5, 6)
@@ -2120,7 +2122,9 @@ class VrRenderer(
         }
 
         // Posição atual e destino, ligados por uma trilha tracejada.
-        val currentU = (abyssPodX / 1.2f * 0.43f).coerceIn(-0.44f, 0.44f)
+        // O mapa fica na parede direita: visto do assento, seu eixo horizontal é espelhado.
+        // Inverter U mantém o marcador indo para a mesma direção visual dos comandos esquerda/direita.
+        val currentU = (-abyssPodX / 1.2f * 0.43f).coerceIn(-0.44f, 0.44f)
         val currentV = (abyssPodForward / 0.45f * 0.39f).coerceIn(-0.40f, 0.40f)
         val targetU = 0.43f
         val targetV = 0.39f
@@ -2230,15 +2234,23 @@ class VrRenderer(
 
     private fun drawAbyssPhotoButton() {
         val active = abyssActiveButton == 6 || abyssButtonFlash[6] > 0.05f
-        abyssColor(if (active) abyssRingOk else floatArrayOf(0.24f, 0.30f, 0.31f, 1f))
+        val photoReady = abyssDepthMeters >= 90f && !abyssTreasureFound
+        val readyColor = if (photoReady) abyssRingOk else abyssCoral2
+        abyssColor(if (active || photoReady) abyssRingOk else floatArrayOf(0.24f, 0.30f, 0.31f, 1f))
         drawEllipsoid(
             abyssPhotoButtonX, abyssPhotoButtonY, abyssPhotoButtonZ + 0.025f,
             0.070f, 0.070f, 0.024f
         )
-        abyssColor(if (active) abyssWhite else abyssCoral2)
+        abyssColor(if (active) abyssWhite else readyColor)
         drawSphere(abyssPhotoButtonX, abyssPhotoButtonY, abyssPhotoButtonZ + 0.050f, 0.020f)
         drawAbyssWord("FOTO", abyssPhotoButtonX, abyssPhotoButtonY - 0.085f,
             abyssPhotoButtonZ + 0.035f, 0.040f, abyssWhite)
+        // Orientação da missão junto ao botão: a partir de 90 m a foto pode revelar o tesouro.
+        drawAbyssWord(
+            if (photoReady) "FOTO 90M" else "DESCA 90M",
+            abyssPhotoButtonX, abyssPhotoButtonY + 0.115f, abyssPhotoButtonZ + 0.035f,
+            0.036f, readyColor
+        )
     }
 
     private fun drawAbyssScene() {

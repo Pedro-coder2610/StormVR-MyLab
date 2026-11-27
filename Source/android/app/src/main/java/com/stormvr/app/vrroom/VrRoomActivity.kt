@@ -434,7 +434,7 @@ CONTROLES DO LASTRO — SOMENTE COM AS MÃOS:
 
 O sonar apresenta ecos simulados. Os mostradores acompanham a variação de profundidade, pressão e lastro. Esta primeira etapa é um teste livre de cockpit; a missão e a história serão desenvolvidas depois.
 
-Ao iniciar, permita o uso da câmera para o rastreamento das duas mãos. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
+Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por um instante para calibrar esquerda e direita; depois pode usar apenas uma. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f
             setTextColor(Color.rgb(230, 245, 250))
             gravity = Gravity.CENTER

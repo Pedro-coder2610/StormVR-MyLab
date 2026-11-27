@@ -6,10 +6,7 @@ O modo Abismo reutiliza o renderizador estéreo do StormVR e o giroscópio do ap
 
 A cena é inteiramente vista de dentro de um submarino compacto, sem janela direta para o oceano. O casco fechado tem piso e teto metálicos, escotilha estanque, nervuras estruturais, tubulações de lastro e refrigeração, braçadeiras, cabos, armários laterais, cilindros, bateria, luminária e console frontal.
 
-O console reúne três telas simuladas:
-- câmera externa de baixa definição, com ruído e uma silhueta distante;
-- mapa de navegação incompleto com rota e ponto de interesse;
-- sonar central com círculos de alcance, varredura e ecos.
+O console frontal reúne a câmera externa simulada e o sonar. Um painel cartográfico separado fica montado na parede à direita do piloto. Esse mapa mostra curvas batimétricas do fundo, grade de coordenadas, trilha até o destino, posição atual e coordenadas XYZ simuladas.
 
 Há também mostradores analógicos, LEDs de lastro e luzes de estado. As telas e leituras são elementos visuais de protótipo; ainda não representam sensores ou uma missão navegável completa.
 
@@ -24,8 +21,9 @@ O olhar e o giroscópio servem apenas para olhar ao redor. Eles **não acionam**
   - **← / →:** deslocam a posição lateral X;
   - **frente / trás:** alteram a posição Y no mapa;
   - **↑ / ↓:** aumentam ou reduzem a flutuabilidade do lastro e fazem o submarino subir ou descer.
-- Para acionar, aproxime a ponta do indicador da placa desejada e faça pinça ou mantenha o gesto de apontar. A placa dá um breve brilho ao reconhecer o comando.
-- Afaste a mão ou solte o gesto antes de acionar outra placa. O sistema permite passar de uma placa para outra sem recalibrar as mãos.
+- As placas são pequenas e ficam agrupadas perto do piloto, na parte superior da bancada.
+- Para acionar, basta apoiar a palma da mão sobre a placa desejada. Não é necessário pinçar, apontar nem tocar exatamente no centro; a área de detecção é maior que a placa física.
+- A placa acende brevemente quando é acionada. Tire a mão da área para rearmá-la antes do próximo toque.
 
 O modo Abismo usa o rastreamento das duas mãos pela câmera. A permissão da câmera é necessária para jogar com os comandos.
 
@@ -35,9 +33,13 @@ Durante o mergulho, o protótipo reproduz um som procedural de água abafada, co
 
 ## Mapa, coordenadas e pressão
 
-Um mapa físico ampliado fica na parede frontal, acima dos instrumentos. Ele mostra a rota, um marcador da posição atual e o destino. Os comandos de esquerda/direita e frente/trás movem o marcador e atualizam as coordenadas **X/Y simuladas**; **Z** acompanha a profundidade simulada. Esses valores são coordenadas internas do protótipo, não GPS nem navegação real no oceano.
+O mapa cartográfico fica na parede à direita do piloto (é preciso virar a cabeça para a direita para observá-lo). Em vez da palavra “ROTA” com uma única linha, ele apresenta curvas batimétricas irregulares para representar o relevo do fundo oceânico, grade, trilha tracejada, marcador da posição atual, destino e coordenadas simuladas. As setas esquerda/direita e frente/trás movem o marcador e atualizam **X/Y**; **Z** acompanha a profundidade. Esses valores são coordenadas internas do protótipo, não GPS nem navegação real no oceano.
 
 Ao ultrapassar o limite de profundidade, a pressão rompe uma seção da tubulação lateral. Bolhas saem do trecho rompido, uma luz vermelha alerta o jogador e o indicador de O2 começa a cair. A taxa de perda aumenta com a profundidade. Quando o O2 chega a zero, a imagem escurece gradualmente durante quatro segundos e o aplicativo encerra a atividade do jogo.
+
+## Estado inicial da missão
+
+O submarino começa próximo à superfície, com a reserva de O2 completa (300 segundos). O indicador de lastro é separado do O2 e começa com uma reserva positiva de ar para manter o veículo próximo da superfície.
 
 ## O que ainda não está pronto
 

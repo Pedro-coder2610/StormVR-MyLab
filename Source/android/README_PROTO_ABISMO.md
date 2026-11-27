@@ -15,15 +15,17 @@ Há também mostradores analógicos, LEDs de lastro e luzes de estado. As telas 
 
 A atmosfera é inspirada em jogos de horror submarino de cabine fechada, sem reproduzir personagens, arte, mapas ou interfaces protegidas de *Iron Lung*.
 
-## Controles — somente pelas mãos
+## Controles — seis setas na bancada
 
 O olhar e o giroscópio servem apenas para olhar ao redor. Eles **não acionam** os comandos.
+
 - Na primeira utilização, mostre **as duas mãos juntas** à câmera por um instante. O jogo calibra esquerda/direita antes de aceitar uma mão isolada.
-- Depois da calibração, **Mão esquerda / Azul / SUBIR:** faça uma pinça para bombear ar no lastro e aumentar a flutuabilidade.
-- **Mão direita / Laranja / DESCER:** faça uma pinça para liberar ar e reduzir a flutuabilidade.
-- Abra os dedos para soltar. Faça uma nova pinça para aplicar outro ajuste.
-- Os comandos agora são push-buttons menores, montados mais à frente no apoio baixo, para não ficarem tão perto do jogador nem exigirem braços erguidos.
-- O aro curto dá feedback visual ao acionar. A dinâmica vertical tem inércia e correnteza simplificadas.
+- A bancada tem seis placas retangulares com setas, no estilo da referência enviada:
+  - **← / →:** deslocam a posição lateral X;
+  - **frente / trás:** alteram a posição Y no mapa;
+  - **↑ / ↓:** aumentam ou reduzem a flutuabilidade do lastro e fazem o submarino subir ou descer.
+- Para acionar, aproxime a ponta do indicador da placa desejada e faça pinça ou mantenha o gesto de apontar. A placa dá um breve brilho ao reconhecer o comando.
+- Afaste a mão ou solte o gesto antes de acionar outra placa. O sistema permite passar de uma placa para outra sem recalibrar as mãos.
 
 O modo Abismo usa o rastreamento das duas mãos pela câmera. A permissão da câmera é necessária para jogar com os comandos.
 
@@ -33,9 +35,9 @@ Durante o mergulho, o protótipo reproduz um som procedural de água abafada, co
 
 ## Mapa, coordenadas e pressão
 
-Um mapa físico foi colocado na parede frontal, acima dos instrumentos. Ele mostra a rota de referência, a posição inicial e o destino. O visor apresenta coordenadas **X/Y de referência** e **Z** acompanha a profundidade simulada. Como o protótipo ainda não tem navegação horizontal, X/Y não representam deslocamento real.
+Um mapa físico ampliado fica na parede frontal, acima dos instrumentos. Ele mostra a rota, um marcador da posição atual e o destino. Os comandos de esquerda/direita e frente/trás movem o marcador e atualizam as coordenadas **X/Y simuladas**; **Z** acompanha a profundidade simulada. Esses valores são coordenadas internas do protótipo, não GPS nem navegação real no oceano.
 
-Ao ultrapassar o limite de profundidade, a pressão rompe uma seção da tubulação lateral. Bolhas saem do trecho rompido, uma luz vermelha alerta o jogador e o indicador de O2 começa a cair. A taxa de perda aumenta com a profundidade. O jogador deve usar **SUBIR** para reduzir a profundidade; o vazamento permanece ativo nesta versão.
+Ao ultrapassar o limite de profundidade, a pressão rompe uma seção da tubulação lateral. Bolhas saem do trecho rompido, uma luz vermelha alerta o jogador e o indicador de O2 começa a cair. A taxa de perda aumenta com a profundidade. Quando o O2 chega a zero, a imagem escurece gradualmente durante quatro segundos e o aplicativo encerra a atividade do jogo.
 
 ## O que ainda não está pronto
 

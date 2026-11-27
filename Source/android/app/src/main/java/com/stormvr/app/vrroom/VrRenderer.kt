@@ -2279,7 +2279,6 @@ class VrRenderer(
         drawSphere(abyssPhotoButtonX, abyssPhotoButtonY, abyssPhotoButtonZ + 0.050f, 0.020f)
         drawAbyssWord("FOTO", abyssPhotoButtonX, abyssPhotoButtonY - 0.085f,
             abyssPhotoButtonZ + 0.035f, 0.040f, abyssWhite)
-        // A instrução de profundidade fica acima da janela, sem ocupar o espaço das setas.
     }
 
     private fun drawAbyssScene() {
@@ -2528,11 +2527,14 @@ class VrRenderer(
         beginAbyssOrganic()
         drawAbyssPhotoWindow()
         drawAbyssWallMap()
-        val photoReady = abyssDepthMeters >= 90f && !abyssTreasureFound
+        val photoStatusLabel = when {
+            abyssTreasureFound -> "TESOURO"
+            abyssDepthMeters >= 90f -> "FOTO 90M"
+            else -> "META 90M"
+        }
         drawAbyssWord(
-            if (photoReady) "FOTO 90M" else "META 90M",
-            -1.28f, 1.455f, 1.145f, 0.045f,
-            if (photoReady) abyssRingOk else abyssCoral2
+            photoStatusLabel, -1.28f, 1.455f, 1.145f, 0.045f,
+            if (abyssDepthMeters >= 90f) abyssRingOk else abyssCoral2
         )
 
         // Botão dedicado para fotografar, ao lado do conjunto de seis setas.

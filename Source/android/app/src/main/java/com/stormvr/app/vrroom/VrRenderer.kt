@@ -2436,6 +2436,7 @@ class VrRenderer(
         val oxygenColor = if (abyssOxygen < 60f) abyssCoral else if (abyssOxygen < 120f) abyssCoral2 else abyssRingOk
         drawAbyssWord("O2", -0.43f, 1.455f, -0.70f, 0.075f, oxygenColor)
         drawAbyssWord(abyssOxygen.toInt().toString(), 0.28f, 1.455f, -0.70f, 0.075f, oxygenColor)
+        drawAbyssWord("${abyssDepthMeters.toInt()}M", 0.98f, 1.455f, -0.70f, 0.065f, abyssBlue)
         for (i in 0 until 10) {
             abyssColor(if (i < oxygenRatio * 10f) oxygenColor else abyssRock)
             drawSphere(-0.18f + i * 0.075f, 1.45f, -0.60f, 0.018f)

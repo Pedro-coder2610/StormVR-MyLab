@@ -7,6 +7,7 @@ import kotlin.math.cos
 import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /** Tipos de alvo que um laser pode estar apontando. */
 object Hit {
@@ -50,6 +51,8 @@ class VrState {
     @Volatile var stereo = true
     // Modo experimental do projeto escolar: cena submarina com interação por olhar.
     @Volatile var abyssMode = false
+    /** Fila thread-safe para efeitos sonoros disparados pela thread GL. */
+    val abyssAudioCues = ConcurrentLinkedQueue<Int>()
     @Volatile var recenter = true
     @Volatile var rotation = 0
 

@@ -688,15 +688,15 @@ class VrRenderer(
     private var abyssPodX = 0f
     private var abyssPodForward = 0f
     private var abyssCurrent = 0f
-    private var abyssOxygen = 300f
+    private var abyssOxygen = 30f
     private var abyssPipeBurst = false
     private var abyssMissionTime = 0f
     private var abyssStableTime = 0f
-    private var abyssMissionState = 0 // 0 em andamento, 1 resgate concluído, 2 oxigênio esgotado
+    private var abyssMissionState = 0 // 0 em andamento, 1 tesouro encontrado, 2 oxigênio esgotado
     private var abyssLastPhysicsNs = 0L
 
     // Câmera/fotografia da janela esquerda: quase sempre escura; a captura revela o fundo.
-    private val abyssPhotoButtonX = -0.50f
+    private val abyssPhotoButtonX = -1.28f
     private val abyssPhotoButtonY = 0.60f
     private val abyssPhotoButtonZ = -0.405f
     private var abyssPhotoRevealUntilNs = 0L
@@ -1637,7 +1637,16 @@ class VrRenderer(
             if (abyssDepthMeters >= 180f) abyssPipeBurst = true
             if (abyssPipeBurst) {
                 val pressureLoad = ((abyssDepthMeters - 180f) / 120f).coerceIn(0f, 1f)
-                abyssOxygen = (abyssOxygen - dt * (0.45f + pressureLoad * 0.95f)).coerceAtLeast(0f)
+                // O tanque de emergência tem 30 segundos; a pressão aumenta a velocidade do vazamento.
+                abyssOxygen = (abyssOxygen - dt * (1.0f + pressureLoad * 0.55f)).coerceAtLeast(0f)
+
+                // Se alcançar a zona de superfície antes de zerar, o sistema sela o cano e
+                // recarrega automaticamente o tanque de emergência para um novo mergulho.
+                if (abyssOxygen > 0f && abyssDepthMeters <= 10f) {
+                    abyssPipeBurst = false
+                    abyssOxygen = 30f
+                }
+
                 if (abyssOxygen <= 0f && abyssMissionState == 0) {
                     abyssMissionState = 2
                     abyssFadeStartNs = nowNs
@@ -1713,7 +1722,10 @@ class VrRenderer(
         abyssPhotoFlashUntilNs = nowNs + 220_000_000L
         abyssPhotoRevealUntilNs = nowNs + 3_000_000_000L
         // O tesouro está numa depressão do relevo e só aparece numa foto feita a pelo menos 90 m.
-        if (abyssDepthMeters >= 90f) abyssTreasureFound = true
+        if (abyssDepthMeters >= 90f && !abyssTreasureFound) {
+            abyssTreasureFound = true
+            abyssMissionState = 1
+        }
     }
 
     private fun activateAbyssButton(button: Int) {
@@ -1797,6 +1809,9 @@ class VrRenderer(
                 'E' -> intArrayOf(0, 1, 3, 4, 6)
                 'C' -> intArrayOf(0, 1, 4, 6)
                 'A' -> intArrayOf(0, 1, 2, 3, 4, 5)
+                'L' -> intArrayOf(1, 4, 6)
+                'M' -> intArrayOf(1, 2, 8, 9, 10)
+                'N' -> intArrayOf(1, 2, 9, 10)
                 'O', '0' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 '1' -> intArrayOf(2, 5)
                 '2' -> intArrayOf(0, 2, 3, 4, 6)
@@ -2432,10 +2447,10 @@ class VrRenderer(
         drawAbyssGauge(1.27f, 1.47f, 0.02f, 0.31f, pressureGauge, abyssCoral2)
 
         // Indicador de oxigênio aparece no console e só cai depois do rompimento por pressão.
-        val oxygenRatio = (abyssOxygen / 300f).coerceIn(0f, 1f)
-        val oxygenColor = if (abyssOxygen < 60f) abyssCoral else if (abyssOxygen < 120f) abyssCoral2 else abyssRingOk
+        val oxygenRatio = (abyssOxygen / 30f).coerceIn(0f, 1f)
+        val oxygenColor = if (abyssOxygen < 8f) abyssCoral else if (abyssOxygen < 15f) abyssCoral2 else abyssRingOk
         drawAbyssWord("O2", -0.43f, 1.455f, -0.70f, 0.075f, oxygenColor)
-        drawAbyssWord(abyssOxygen.toInt().toString(), 0.28f, 1.455f, -0.70f, 0.075f, oxygenColor)
+        drawAbyssWord("${abyssOxygen.toInt()}S", 0.30f, 1.455f, -0.70f, 0.075f, oxygenColor)
         drawAbyssWord("${abyssDepthMeters.toInt()}M", 0.98f, 1.455f, -0.70f, 0.065f, abyssBlue)
         for (i in 0 until 10) {
             abyssColor(if (i < oxygenRatio * 10f) oxygenColor else abyssRock)
@@ -2459,6 +2474,21 @@ class VrRenderer(
         drawSphere(-1.72f, 1.43f, 0.56f, 0.025f)
 
         // Os seis comandos estão na bancada, conforme o conjunto de setas pedido.
+        if (abyssMissionState == 1) drawAbyssEndingCard()
+    }
+
+    /** Cartela final simples; permanece na cabine para o jogador ler o resultado. */
+    private fun drawAbyssEndingCard() {
+        GLES20.glUseProgram(roomProg)
+        val card = floatArrayOf(0.006f, 0.026f, 0.030f, 1f)
+        basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f,
+            0f, 1.405f, 0.12f, 2.20f, 1.18f)
+        quadRoom(card, 8f, 2.20f, 1.18f)
+
+        beginAbyssOrganic()
+        drawAbyssWord("MISSAO", 0f, 1.38f, 0.43f, 0.13f, abyssRingOk)
+        drawAbyssWord("CONCLUIDA", 0f, 1.38f, 0.18f, 0.095f, abyssWhite)
+        drawAbyssWord("TESOURO ENCONTRADO", 0f, 1.38f, -0.17f, 0.060f, abyssCoral2)
     }
 
     private fun drawRoom() {

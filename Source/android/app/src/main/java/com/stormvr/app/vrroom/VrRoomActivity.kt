@@ -426,14 +426,14 @@ class VrRoomActivity : Activity() {
             text = """Você está dentro da cabine de um submarino de pesquisa. O casco é fechado: use o sonar e os instrumentos do painel para entender o que acontece do lado de fora.
 
 SEIS SETAS PEQUENAS NA BANCADA — USE AS MÃOS:
-• Basta apoiar a palma da mão sobre uma das placas. Não precisa pinçar, apontar nem acertar um ponto minúsculo.
-• ← / → movem o submarino para a esquerda e direita no mapa à sua direita.
-• Frente / trás movem a posição Y no mapa.
-• ↑ / ↓ controlam o lastro para subir ou descer.
-• A placa acende quando é ativada. Tire a mão da área para liberar o próximo acionamento.
-• Olhar e movimento da cabeça servem apenas para olhar ao redor — nunca acionam os comandos.
+• Basta apoiar a palma da mão sobre uma das placas. Não precisa pinçar nem apontar.
+• ← / → movem o submarino para a esquerda e direita; frente / trás alteram a posição no mapa à direita.
+• ↑ / ↓ alteram a profundidade-alvo em passos de 35 metros. A profundidade muda suavemente e o medidor acompanha a descida/subida.
+• A janela escura fica à esquerda. Apoie a mão no botão FOTO ao lado das setas para tirar uma imagem do fundo.
+• A partir de 90 metros, a foto pode revelar o tesouro escondido. Antes disso, a câmera captura apenas vultos na escuridão.
+• Tire a mão da placa para liberar o próximo acionamento. Olhar e movimento da cabeça servem apenas para olhar ao redor.
 
-O sonar apresenta ecos simulados. Os mostradores acompanham a variação de profundidade, pressão e lastro. Esta primeira etapa é um teste livre de cockpit; a missão e a história serão desenvolvidas depois.
+A missão começa a 8 metros de profundidade, perto da superfície, com 300 segundos de O2. O sonar apresenta ecos simulados; pressão e vazamento passam a ameaçar o submarino a partir de 180 metros.
 
 Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por um instante para calibrar esquerda e direita; depois pode usar apenas uma mão para alcançar qualquer uma das seis setas. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f

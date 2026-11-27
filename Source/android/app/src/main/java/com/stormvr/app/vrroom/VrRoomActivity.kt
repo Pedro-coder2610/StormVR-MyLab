@@ -425,13 +425,13 @@ class VrRoomActivity : Activity() {
         panel.addView(TextView(this).apply {
             text = """Você está dentro da cabine de um submarino de pesquisa. O casco é fechado: use o sonar e os instrumentos do painel para entender o que acontece do lado de fora.
 
-SEIS SETAS NA BANCADA — USE AS MÃOS:
-• Aproxime a ponta do indicador de uma placa e aponte ou faça pinça para acioná-la.
-• ← / → movem o submarino para a esquerda e direita no mapa.
+SEIS SETAS PEQUENAS NA BANCADA — USE AS MÃOS:
+• Basta apoiar a palma da mão sobre uma das placas. Não precisa pinçar, apontar nem acertar um ponto minúsculo.
+• ← / → movem o submarino para a esquerda e direita no mapa à sua direita.
 • Frente / trás movem a posição Y no mapa.
 • ↑ / ↓ controlam o lastro para subir ou descer.
-• A placa acende brevemente quando reconhece o comando. Solte ou afaste a mão antes de pressionar outra.
-• Olhar e movimento da cabeça servem apenas para olhar ao redor — nunca acionam os botões.
+• A placa acende quando é ativada. Tire a mão da área para liberar o próximo acionamento.
+• Olhar e movimento da cabeça servem apenas para olhar ao redor — nunca acionam os comandos.
 
 O sonar apresenta ecos simulados. Os mostradores acompanham a variação de profundidade, pressão e lastro. Esta primeira etapa é um teste livre de cockpit; a missão e a história serão desenvolvidas depois.
 

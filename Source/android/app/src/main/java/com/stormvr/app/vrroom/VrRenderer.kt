@@ -1623,7 +1623,8 @@ class VrRenderer(
 
             // As setas definem uma profundidade-alvo. O submarino acelera e desacelera até lá.
             val depthError = abyssTargetDepthMeters - abyssDepthMeters
-            val desiredRate = (depthError * 0.55f).coerceIn(-5.0f, 5.0f)
+            // A subida de emergência é mais rápida que a descida para permitir voltar antes do O2 zerar.
+            val desiredRate = (depthError * 0.55f).coerceIn(-14.0f, 5.0f)
             abyssDepthRate += (desiredRate - abyssDepthRate) * (dt * 1.8f).coerceIn(0f, 1f)
             val nextDepth = (abyssDepthMeters + abyssDepthRate * dt).coerceIn(5f, 300f)
             if ((abyssTargetDepthMeters - abyssDepthMeters) * (abyssTargetDepthMeters - nextDepth) <= 0f) {
@@ -1638,7 +1639,7 @@ class VrRenderer(
             if (abyssPipeBurst) {
                 val pressureLoad = ((abyssDepthMeters - 180f) / 120f).coerceIn(0f, 1f)
                 // O tanque de emergência tem 30 segundos; a pressão aumenta a velocidade do vazamento.
-                abyssOxygen = (abyssOxygen - dt * (1.0f + pressureLoad * 0.55f)).coerceAtLeast(0f)
+                abyssOxygen = (abyssOxygen - dt * (1.0f + pressureLoad * 0.35f)).coerceAtLeast(0f)
 
                 // Se alcançar a zona de superfície antes de zerar, o sistema sela o cano e
                 // recarrega automaticamente o tanque de emergência para um novo mergulho.

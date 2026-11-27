@@ -1609,7 +1609,7 @@ class VrRenderer(
         }
     }
 
-    private fun beginAbyssOrganic()
+    private fun beginAbyssOrganic() {
         GLES20.glUseProgram(handProg)
         GLES20.glUniformMatrix4fv(hVP, 1, false, vp, 0)
         GLES20.glUniform3f(hEye, st.headX, st.headY, st.headZ)

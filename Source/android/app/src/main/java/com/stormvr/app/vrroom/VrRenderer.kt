@@ -1807,6 +1807,7 @@ class VrRenderer(
                 'R' -> intArrayOf(0, 1, 2, 3, 4, 7)
                 'D' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 'E' -> intArrayOf(0, 1, 3, 4, 6)
+                'F' -> intArrayOf(0, 1, 3, 4)
                 'C' -> intArrayOf(0, 1, 4, 6)
                 'G' -> intArrayOf(0, 1, 3, 4, 5, 6)
                 'A' -> intArrayOf(0, 1, 2, 3, 4, 5)
@@ -2137,7 +2138,7 @@ class VrRenderer(
 
     private fun drawAbyssPhotoWindow() {
         val nowNs = System.nanoTime()
-        val reveal = nowNs <= abyssPhotoRevealUntilNs
+        val reveal = abyssTreasureFound || nowNs <= abyssPhotoRevealUntilNs
         val flash = nowNs <= abyssPhotoFlashUntilNs
         val y = 1.492f
         val left = -1.79f

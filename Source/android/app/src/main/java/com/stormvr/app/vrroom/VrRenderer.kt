@@ -1,5 +1,6 @@
 package com.stormvr.app.vrroom
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.hardware.Sensor
@@ -439,6 +440,15 @@ class VrRenderer(
     private var bgProg = 0
     private var lensProg = 0
     private var fsProg = 0
+    private var abyssFadeProg = 0
+    private var abyssFadePos = 0
+    private var abyssFadeAlphaLoc = 0
+    private val abyssFadeQuad: FloatBuffer = ByteBuffer.allocateDirect(8 * 4)
+        .order(ByteOrder.nativeOrder()).asFloatBuffer().apply {
+            put(floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)); position(0)
+        }
+    private var abyssFadeStartNs = 0L
+    private var abyssExitRequested = false
     private var lensFbo = 0
     private var lensTex = 0
     private var lensDepth = 0
@@ -704,6 +714,12 @@ class VrRenderer(
         bgProg = program(BG_VS, BG_FS)
         lensProg = program(LENS_VS, LENS_FS)
         fsProg = program(FS_VS, FS_FS)
+        abyssFadeProg = program(
+            "attribute vec2 aPos; void main() { gl_Position = vec4(aPos, 0.0, 1.0); }",
+            "precision mediump float; uniform float uAlpha; void main() { gl_FragColor = vec4(0.0, 0.0, 0.0, uAlpha); }"
+        )
+        abyssFadePos = GLES20.glGetAttribLocation(abyssFadeProg, "aPos")
+        abyssFadeAlphaLoc = GLES20.glGetUniformLocation(abyssFadeProg, "uAlpha")
         lensFbo = 0; lensTex = 0; lensDepth = 0
         bgPos = GLES20.glGetAttribLocation(bgProg, "aPos")
         bgUvLoc = GLES20.glGetAttribLocation(bgProg, "aUV")
@@ -916,6 +932,32 @@ class VrRenderer(
         } else {
             curEye = -1
             renderEye(0, 0, width, height, 0f, 75f)
+        }
+        if (st.abyssMode && abyssMissionState == 2) drawAbyssFadeAndExit()
+    }
+
+    private fun drawAbyssFadeAndExit() {
+        if (abyssFadeStartNs == 0L) abyssFadeStartNs = System.nanoTime()
+        val elapsed = (System.nanoTime() - abyssFadeStartNs) / 1_000_000_000f
+        val alpha = (elapsed / 4.0f).coerceIn(0f, 1f)
+        if (alpha > 0f && abyssFadeProg != 0) {
+            GLES20.glViewport(0, 0, width, height)
+            GLES20.glDisable(GLES20.GL_DEPTH_TEST)
+            GLES20.glEnable(GLES20.GL_BLEND)
+            GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+            GLES20.glUseProgram(abyssFadeProg)
+            GLES20.glUniform1f(abyssFadeAlphaLoc, alpha)
+            abyssFadeQuad.position(0)
+            GLES20.glVertexAttribPointer(abyssFadePos, 2, GLES20.GL_FLOAT, false, 8, abyssFadeQuad)
+            GLES20.glEnableVertexAttribArray(abyssFadePos)
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+            GLES20.glDisableVertexAttribArray(abyssFadePos)
+            GLES20.glDisable(GLES20.GL_BLEND)
+            GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+        }
+        if (alpha >= 1f && !abyssExitRequested) {
+            abyssExitRequested = true
+            (context as? Activity)?.runOnUiThread { finishAffinity() }
         }
     }
 
@@ -1570,7 +1612,10 @@ class VrRenderer(
             if (abyssPipeBurst) {
                 val pressureLoad = ((-abyssPodHeight - 0.95f) / 0.40f).coerceIn(0f, 1f)
                 abyssOxygen = (abyssOxygen - dt * (0.55f + pressureLoad * 0.65f)).coerceAtLeast(0f)
-                if (abyssOxygen <= 0f) abyssMissionState = 2
+                if (abyssOxygen <= 0f && abyssMissionState == 0) {
+                    abyssMissionState = 2
+                    abyssFadeStartNs = nowNs
+                }
             }
 
             abyssStableTime = if (abs(abyssPodVelocity) < 0.08f) {
@@ -1596,13 +1641,14 @@ class VrRenderer(
             for (h in 0..1) {
                 val valid = st.handValid[h]
                 val pinching = valid && st.handPinch[h] && st.handGesture[h] == HandGesture.PINCH
+                val activating = pinching || (valid && st.handGesture[h] == HandGesture.POINT)
                 if (!valid) {
                     abyssPinchHeld[h] = false
                     continue
                 }
 
                 // Um toque de pinça por vez: é preciso abrir os dedos antes de acionar novamente.
-                if (pinching && !abyssPinchHeld[h]) {
+                if (activating && !abyssPinchHeld[h]) {
                     if (h == 0) {
                         abyssAirLevel = (abyssAirLevel + 0.08f).coerceAtMost(1f)
                     } else {
@@ -1610,9 +1656,9 @@ class VrRenderer(
                     }
                     abyssPressFlash[h] = 1f
                 }
-                abyssPinchHeld[h] = pinching
+                abyssPinchHeld[h] = activating
 
-                if (pinching || st.handGesture[h] == HandGesture.POINT) {
+                if (activating) {
                     abyssActiveControl = h + 1
                 }
             }
@@ -1740,22 +1786,22 @@ class VrRenderer(
     ) {
         // Push-button industrial compacto: base escura, aro curto e centro iluminado.
         abyssColor(abyssRock)
-        drawSphere(cx, y + 0.015f, cz, 0.145f)
+        drawSphere(cx, y + 0.015f, cz, 0.195f)
         for (i in 0 until 24) {
             val a0 = (i * 2.0 * PI / 24.0).toFloat()
             val a1 = ((i + 0.78) * 2.0 * PI / 24.0).toFloat()
             drawBone(
-                cx + cos(a0) * 0.185f, y - 0.004f, cz + sin(a0) * 0.185f,
-                cx + cos(a1) * 0.185f, y - 0.004f, cz + sin(a1) * 0.185f,
-                0.012f, 0.012f
+                cx + cos(a0) * 0.245f, y - 0.004f, cz + sin(a0) * 0.245f,
+                cx + cos(a1) * 0.245f, y - 0.004f, cz + sin(a1) * 0.245f,
+                0.016f, 0.016f
             )
         }
         for (i in 0 until 4) {
             val a = i * PI.toFloat() / 2f + PI.toFloat() / 4f
-            drawSphere(cx + cos(a) * 0.155f, y - 0.008f, cz + sin(a) * 0.155f, 0.014f)
+            drawSphere(cx + cos(a) * 0.205f, y - 0.008f, cz + sin(a) * 0.205f, 0.018f)
         }
         abyssColor(if (selected && progress > 0.05f) abyssWhite else color)
-        drawSphere(cx, y - 0.026f, cz, 0.108f)
+        drawSphere(cx, y - 0.026f, cz, 0.150f)
         // Seta gravada no botão: azul sobe, laranja desce.
         drawAbyssArrow(cx, y - 0.105f, cz, positive, abyssWhite)
 
@@ -1766,9 +1812,9 @@ class VrRenderer(
             val a1 = ((i + 0.75) * 2.0 * PI / 24.0).toFloat()
             abyssColor(if (selected && i < filled) abyssWhite else abyssRock)
             drawBone(
-                cx + cos(a0) * 0.205f, y - 0.012f, cz + sin(a0) * 0.205f,
-                cx + cos(a1) * 0.205f, y - 0.012f, cz + sin(a1) * 0.205f,
-                0.008f, 0.008f
+                cx + cos(a0) * 0.265f, y - 0.012f, cz + sin(a0) * 0.265f,
+                cx + cos(a1) * 0.265f, y - 0.012f, cz + sin(a1) * 0.265f,
+                0.010f, 0.010f
             )
         }
     }
@@ -1961,39 +2007,40 @@ class VrRenderer(
             0f, 1.535f, 0.02f, 1.30f, 0.92f)
         quadRoom(screen, 8f, 1.30f, 0.92f)
 
-        // Mapa físico na parede frontal, acima do painel de instrumentos.
+        // MAPA PRINCIPAL: placa larga e contrastada, acima dos instrumentos e no centro da parede.
         basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f,
-            0f, 1.505f, 1.48f, 1.66f, 0.62f)
-        quadRoom(hullAlt, 8f, 1.66f, 0.62f)
+            0f, 1.505f, 1.48f, 1.78f, 0.66f)
+        quadRoom(hullAlt, 8f, 1.78f, 0.66f)
 
         beginAbyssOrganic()
 
-        // Mapa de rota na parede: grade, posição do submarino, destino e coordenadas XYZ.
-        abyssColor(metal)
-        drawBone(-0.78f, 1.485f, 1.20f, 0.78f, 1.485f, 1.20f, 0.014f, 0.014f)
-        drawBone(-0.78f, 1.485f, 1.20f, -0.78f, 1.485f, 1.76f, 0.014f, 0.014f)
-        drawBone(0.78f, 1.485f, 1.20f, 0.78f, 1.485f, 1.76f, 0.014f, 0.014f)
-        drawBone(-0.78f, 1.485f, 1.76f, 0.78f, 1.485f, 1.76f, 0.014f, 0.014f)
+        // Moldura externa e título do mapa para que ele seja fácil de localizar no cockpit.
+        abyssColor(abyssWhite)
+        drawBone(-0.88f, 1.470f, 1.12f, 0.88f, 1.470f, 1.12f, 0.022f, 0.022f)
+        drawBone(-0.88f, 1.470f, 1.12f, -0.88f, 1.470f, 1.84f, 0.022f, 0.022f)
+        drawBone(0.88f, 1.470f, 1.12f, 0.88f, 1.470f, 1.84f, 0.022f, 0.022f)
+        drawBone(-0.88f, 1.470f, 1.84f, 0.88f, 1.470f, 1.84f, 0.022f, 0.022f)
+        drawAbyssWord("ROTA", 0f, 1.465f, 1.70f, 0.10f, abyssWhite)
         abyssColor(abyssRock)
-        for (i in 1..6) {
-            val x = -0.78f + i * 0.22f
-            drawBone(x, 1.488f, 1.27f, x, 1.488f, 1.70f, 0.004f, 0.004f)
+        for (i in 1..7) {
+            val x = -0.84f + i * 0.21f
+            drawBone(x, 1.474f, 1.20f, x, 1.474f, 1.61f, 0.008f, 0.008f)
         }
         for (i in 1..3) {
-            val z = 1.20f + i * 0.14f
-            drawBone(-0.76f, 1.488f, z, 0.76f, 1.488f, z, 0.004f, 0.004f)
+            val z = 1.20f + i * 0.10f
+            drawBone(-0.84f, 1.474f, z, 0.84f, 1.474f, z, 0.008f, 0.008f)
         }
         abyssColor(abyssBlue)
-        drawBone(-0.58f, 1.475f, 1.34f, -0.18f, 1.475f, 1.48f, 0.018f, 0.018f)
-        drawBone(-0.18f, 1.475f, 1.48f, 0.18f, 1.475f, 1.43f, 0.018f, 0.018f)
-        drawBone(0.18f, 1.475f, 1.43f, 0.58f, 1.475f, 1.64f, 0.018f, 0.018f)
+        drawBone(-0.68f, 1.458f, 1.25f, -0.22f, 1.458f, 1.43f, 0.028f, 0.028f)
+        drawBone(-0.22f, 1.458f, 1.43f, 0.18f, 1.458f, 1.37f, 0.028f, 0.028f)
+        drawBone(0.18f, 1.458f, 1.37f, 0.66f, 1.458f, 1.56f, 0.028f, 0.028f)
         abyssColor(abyssRingOk)
-        drawSphere(-0.58f, 1.465f, 1.34f, 0.045f)   // posição atual
+        drawSphere(-0.68f, 1.445f, 1.25f, 0.065f)   // submarino: posição atual
         abyssColor(abyssCoral2)
-        drawSphere(0.58f, 1.465f, 1.64f, 0.050f)    // destino
+        drawSphere(0.66f, 1.445f, 1.56f, 0.070f)    // destino
         val depthCoord = (abyssPodHeight * 100f).toInt()
         abyssColor(abyssWhite)
-        drawAbyssWord("X124 Y038 Z$depthCoord", 0f, 1.465f, 1.205f, 0.065f, abyssWhite)
+        drawAbyssWord("X124 Y038 Z$depthCoord", 0f, 1.455f, 1.16f, 0.085f, abyssWhite)
 
         // Câmera externa: imagem propositalmente granulada e pouco confiável.
         abyssColor(pale)
@@ -2084,12 +2131,12 @@ class VrRenderer(
         drawSphere(-1.72f, 1.43f, 0.56f, 0.025f)
 
         // Módulo de comandos abaixo do console principal, junto à altura da cintura/mãos descansadas.
-        drawAbyssControl(-0.48f, 0.62f, -0.66f, abyssBlue,
+        drawAbyssControl(-0.48f, 0.46f, -0.66f, abyssBlue,
             abyssActiveControl == 1, abyssPressFlash[0], true)
-        drawAbyssControl(0.48f, 0.62f, -0.66f, abyssOrange,
+        drawAbyssControl(0.48f, 0.46f, -0.66f, abyssOrange,
             abyssActiveControl == 2, abyssPressFlash[1], false)
-        drawAbyssWord("SUBIR", -0.48f, 0.605f, -0.42f, 0.08f, abyssBlue)
-        drawAbyssWord("DESCER", 0.48f, 0.605f, -0.42f, 0.08f, abyssOrange)
+        drawAbyssWord("SUBIR", -0.48f, 0.445f, -0.42f, 0.08f, abyssBlue)
+        drawAbyssWord("DESCER", 0.48f, 0.445f, -0.42f, 0.08f, abyssOrange)
     }
 
     private fun drawRoom() {

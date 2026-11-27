@@ -6,7 +6,7 @@ O modo Abismo reutiliza o renderizador estéreo do StormVR e o giroscópio do ap
 
 A cena é inteiramente vista de dentro de um submarino compacto, sem janela direta para o oceano. O casco fechado tem piso e teto metálicos, escotilha estanque, nervuras estruturais, tubulações de lastro e refrigeração, braçadeiras, cabos, armários laterais, cilindros, bateria, luminária e console frontal.
 
-O console frontal reúne a câmera externa simulada e o sonar. Um painel cartográfico separado fica montado na parede à direita do piloto. Esse mapa mostra curvas batimétricas do fundo, grade de coordenadas, trilha até o destino, posição atual e coordenadas XYZ simuladas.
+O console frontal reúne o sonar e uma janela de observação à esquerda. A janela permanece quase totalmente preta, com ruído muito discreto, porque há pouca luz no fundo do mar. Ao lado das seis setas da bancada há um botão FOTO: apoiar a palma nele aciona uma captura. O instantâneo fica visível por alguns segundos e depois a janela volta a escurecer. A partir de 90 m de profundidade a foto pode revelar um destroço e um baú escondido; em águas rasas aparecem apenas vultos.
 
 Há também mostradores analógicos, LEDs de lastro e luzes de estado. As telas e leituras são elementos visuais de protótipo; ainda não representam sensores ou uma missão navegável completa.
 
@@ -20,10 +20,11 @@ O olhar e o giroscópio servem apenas para olhar ao redor. Eles **não acionam**
 - A bancada tem seis placas retangulares com setas, no estilo da referência enviada:
   - **← / →:** deslocam a posição lateral X;
   - **frente / trás:** alteram a posição Y no mapa;
-  - **↑ / ↓:** aumentam ou reduzem a flutuabilidade do lastro e fazem o submarino subir ou descer.
+  - **↑ / ↓:** alteram a profundidade-alvo em passos de 35 m. O submarino acelera e desacelera até a nova profundidade; o medidor, a pressão e o risco de vazamento acompanham a mudança.
 - As placas são pequenas e ficam agrupadas perto do piloto, na parte superior da bancada.
 - Para acionar, basta apoiar a palma da mão sobre a placa desejada. Não é necessário pinçar, apontar nem tocar exatamente no centro; a área de detecção é maior que a placa física.
 - A placa acende brevemente quando é acionada. Tire a mão da área para rearmá-la antes do próximo toque.
+- O botão **FOTO**, à esquerda das setas, usa a mesma ativação por apoio da palma. Cada contato tira uma foto; retire a mão e apoie novamente para fotografar outra vez.
 
 O modo Abismo usa o rastreamento das duas mãos pela câmera. A permissão da câmera é necessária para jogar com os comandos.
 
@@ -39,7 +40,7 @@ Ao ultrapassar o limite de profundidade, a pressão rompe uma seção da tubula�
 
 ## Estado inicial da missão
 
-O submarino começa próximo à superfície, com a reserva de O2 completa (300 segundos). O indicador de lastro é separado do O2 e começa com uma reserva positiva de ar para manter o veículo próximo da superfície.
+O submarino começa a **8 m de profundidade**, perto da superfície, com a reserva de O2 completa (300 segundos). A profundidade-alvo começa em 8 m e muda em passos de 35 m pelas setas subir/descer. O veículo pode descer até 300 m; em 180 m a pressão rompe uma tubulação e inicia o consumo de O2. O indicador de lastro é separado do O2.
 
 ## O que ainda não está pronto
 

@@ -21,16 +21,16 @@ O olhar e o giroscópio servem apenas para olhar ao redor. Eles **não acionam**
   - **← / →:** deslocam a posição lateral X;
   - **frente / trás:** alteram a posição Y no mapa;
   - **↑ / ↓:** alteram a profundidade-alvo em passos de 35 m. O submarino acelera e desacelera até a nova profundidade; o medidor, a pressão e o risco de vazamento acompanham a mudança.
-- As placas são pequenas e ficam agrupadas perto do piloto, na parte superior da bancada.
+- As placas são pequenas e ficam agrupadas perto do piloto, na parte superior da bancada. As duas colunas e três linhas têm espaçamento maior; a zona de toque é mais estreita que a distância entre as placas e exige apoiar a mão estável por cerca de 140 ms, reduzindo acionamentos ao passar por cima de outra seta.
 - Para acionar, basta apoiar a palma da mão sobre a placa desejada. Não é necessário pinçar, apontar nem tocar exatamente no centro; a área de detecção é maior que a placa física.
 - A placa acende brevemente quando é acionada. Tire a mão da área para rearmá-la antes do próximo toque.
 - O botão **FOTO**, à esquerda das setas, usa a mesma ativação por apoio da palma. Cada contato tira uma foto; retire a mão e apoie novamente para fotografar outra vez.
 
 O modo Abismo usa o rastreamento das duas mãos pela câmera. A permissão da câmera é necessária para jogar com os comandos.
 
-## Áudio ambiente
+## Áudio e feedback do jogo
 
-Durante o mergulho, o protótipo reproduz um som procedural de água abafada, com bolhas ocasionais em volume baixo. O áudio pausa quando o app sai de foco e para ao sair do modo VR. Não há gritos, sustos, impactos repentinos ou sons de terror.
+Durante o mergulho, o áudio procedural combina ruído de água, vibração grave do casco, bolhas e pulsos periódicos de sonar. As interações têm sinais próprios: clique curto nas setas, obturador na fotografia, ruído metálico no rompimento do cano, alerta quando o O2 fica baixo, som de recarga na superfície e pequena sequência ascendente ao encontrar o tesouro. O volume foi elevado em relação à versão anterior, mantendo os efeitos sem picos agressivos. O áudio pausa quando o app sai de foco e para ao sair do modo VR.
 
 ## Mapa, coordenadas e pressão
 

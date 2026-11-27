@@ -109,6 +109,7 @@ class VrRoomActivity : Activity() {
 
     private var vrMode = false
     private var abyssMode = false
+    private var abyssHandsCalibrationNotice = false
     private val underwaterAmbience = UnderwaterAmbience()
 
     // mãos (MediaPipe)
@@ -1188,6 +1189,10 @@ Ao iniciar, permita o uso da câmera para o rastreamento das duas mãos. No VR B
         }
         t.wantHands = if (state.twoHands) 2 else 1
         t.start()
+        if (abyssMode && !abyssHandsCalibrationNotice) {
+            abyssHandsCalibrationNotice = true
+            toast("Para calibrar os lados, mostre as DUAS mãos juntas à câmera por um instante. Depois pode usar só uma.")
+        }
     }
 
     private fun stopHands() {

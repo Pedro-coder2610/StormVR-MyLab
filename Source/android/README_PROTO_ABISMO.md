@@ -26,6 +26,10 @@ O jogador não precisa apontar a mão nem fazer pinça:
 
 O aro em volta do botão mostra o progresso do acionamento. A dinâmica vertical tem inércia e correnteza simplificadas.
 
+## Áudio ambiente
+
+Durante o mergulho, o protótipo reproduz um som procedural de água abafada, com bolhas ocasionais em volume baixo. O áudio pausa quando o app sai de foco e para ao sair do modo VR. Não há gritos, sustos, impactos repentinos ou sons de terror.
+
 ## O que ainda não está pronto
 
 1. A missão com começo, objetivo, tarefas e final.

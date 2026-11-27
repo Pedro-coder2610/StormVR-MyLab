@@ -15,16 +15,16 @@ Há também mostradores analógicos, LEDs de lastro e luzes de estado. As telas 
 
 A atmosfera é inspirada em jogos de horror submarino de cabine fechada, sem reproduzir personagens, arte, mapas ou interfaces protegidas de *Iron Lung*.
 
-## Controles — modo simplificado por olhar
+## Controles — somente pelas mãos
 
-O jogador não precisa apontar a mão nem fazer pinça:
-- **Azul / SUBIR:** olhe para o botão azul para bombear ar no lastro e aumentar a flutuabilidade.
-- **Laranja / DESCER:** olhe para o botão laranja para liberar ar e reduzir a flutuabilidade.
-- Mantenha o olhar por cerca de **0,8 segundo** para aplicar um ajuste.
-- Enquanto continuar olhando para o mesmo botão, um novo ajuste pequeno é aplicado a cada 0,8 segundo.
-- Afaste o olhar do botão para interromper os ajustes.
+O olhar e o giroscópio servem apenas para olhar ao redor. Eles **não acionam** os comandos.
+- **Mão esquerda / Azul / SUBIR:** faça uma pinça para bombear ar no lastro e aumentar a flutuabilidade.
+- **Mão direita / Laranja / DESCER:** faça uma pinça para liberar ar e reduzir a flutuabilidade.
+- Abra os dedos para soltar. Faça uma nova pinça para aplicar outro ajuste.
+- Os dois comandos estão rebaixados no apoio à frente do jogador, perto da altura do colo, para evitar manter os braços erguidos.
+- O aro dos botões dá um feedback visual ao acionar. A dinâmica vertical tem inércia e correnteza simplificadas.
 
-O aro em volta do botão mostra o progresso do acionamento. A dinâmica vertical tem inércia e correnteza simplificadas.
+O modo Abismo usa o rastreamento das duas mãos pela câmera. A permissão da câmera é necessária para jogar com os comandos.
 
 ## Áudio ambiente
 

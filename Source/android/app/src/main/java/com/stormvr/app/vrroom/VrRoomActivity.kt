@@ -1065,6 +1065,7 @@ Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por u
 
     private fun exitVr() {
         vrMode = false
+        state.abyssAudioCues.clear()
         underwaterAmbience.stop()
         extras?.stop()
         stopHub()
@@ -1535,6 +1536,14 @@ Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por u
             if (ui.tbFlash != -1 && now > tbFlashUntil) ui.tbFlash = -1
             refreshUi()
             refreshStatus(now)
+
+            // A thread GL pode pedir efeitos sem tocar diretamente no AudioTrack.
+            var cueCount = 0
+            while (cueCount < 8) {
+                val cue = state.abyssAudioCues.poll() ?: break
+                underwaterAmbience.playCue(cue)
+                cueCount++
+            }
 
             Choreographer.getInstance().postFrameCallback(this)
         }

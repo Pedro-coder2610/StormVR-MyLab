@@ -109,6 +109,7 @@ class VrRoomActivity : Activity() {
 
     private var vrMode = false
     private var abyssMode = false
+    private val underwaterAmbience = UnderwaterAmbience()
 
     // mãos (MediaPipe)
     private var tracker: HandTracker? = null
@@ -352,6 +353,7 @@ class VrRoomActivity : Activity() {
     override fun onResume() {
         super.onResume()
         glView.onResume()
+        if (vrMode && abyssMode) underwaterAmbience.start()
         if (vrMode) {
             renderer.startSensors()
             startAr()
@@ -361,6 +363,7 @@ class VrRoomActivity : Activity() {
     }
 
     override fun onPause() {
+        underwaterAmbience.stop()
         Choreographer.getInstance().removeFrameCallback(frameCb)
         stopAr()
         renderer.stopSensors()
@@ -370,6 +373,7 @@ class VrRoomActivity : Activity() {
     }
 
     override fun onDestroy() {
+        underwaterAmbience.stop()
         stopPcLink()
         stopHub()
         stopAr()
@@ -1033,6 +1037,7 @@ Ao iniciar, permita o uso da câmera para o rastreamento das mãos. No VR Box, c
             if (currentUrl.isEmpty()) currentUrl = homeUrl
         }
         vrMode = true
+        if (abyssMode) underwaterAmbience.start()
         applyExtras(); extras?.recenter()
         startPanel.visibility = View.GONE
         glView.visibility = View.VISIBLE
@@ -1055,6 +1060,7 @@ Ao iniciar, permita o uso da câmera para o rastreamento das mãos. No VR Box, c
 
     private fun exitVr() {
         vrMode = false
+        underwaterAmbience.stop()
         extras?.stop()
         stopHub()
         stopPcLink()

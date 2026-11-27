@@ -109,6 +109,8 @@ class VrRoomActivity : Activity() {
 
     private var vrMode = false
     private var abyssMode = false
+    private var abyssHandsCalibrationNotice = false
+    private val underwaterAmbience = UnderwaterAmbience()
 
     // mãos (MediaPipe)
     private var tracker: HandTracker? = null
@@ -267,13 +269,15 @@ class VrRoomActivity : Activity() {
         loadPrefs()
         abyssMode = intent.getBooleanExtra(EXTRA_ABYSS_MODE, false)
         if (abyssMode) {
-            // O protótipo usa só o giroscópio e o renderizador estéreo já existente no StormVR.
-            // Não precisa de câmera, ARCore, rastreamento de mãos ou conexão com PC.
+            // No Abismo, a cabeça só movimenta a visão; comandos exigem aproximar a ponta do indicador e apontar ou fazer pinça.
             state.abyssMode = true
             state.stereo = true
             state.sixDof = false
-            state.handsOn = false
+            state.handsOn = true
             state.handLasers = false
+            state.twoHands = true
+            state.handSource = 0
+            state.handMaxFps = 20
             state.passthrough = false
             state.fullscreen = false
             state.lite = true
@@ -305,8 +309,11 @@ class VrRoomActivity : Activity() {
         state.sixDof = com.stormvr.app.Prefs(this).sixDof          // 3DoF/6DoF: uma escolha só, na tela inicial
         if (abyssMode) {
             state.sixDof = false
-            state.handsOn = false
+            state.handsOn = true
             state.handLasers = false
+            state.twoHands = true
+            state.handSource = 0
+            state.handMaxFps = 20
             state.passthrough = false
             state.stereo = true
             state.lite = true
@@ -323,7 +330,7 @@ class VrRoomActivity : Activity() {
             state.pcMode = true
             glView.post { enterVr(true) }
         }
-        if (!abyssMode && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.CAMERA), 77)
         }
     }
@@ -336,7 +343,9 @@ class VrRoomActivity : Activity() {
             } else {
                 state.sixDof = false
                 state.handsOn = false
-                toast("Sem permissão da câmera: 6DoF e mãos desativados (só rotação).")
+                state.twoHands = false
+                if (abyssMode) toast("Permissão da câmera negada: o controle por mãos não está disponível. Autorize a câmera para jogar o Abismo.")
+                else toast("Sem permissão da câmera: 6DoF e mãos desativados (só rotação).")
             }
         } else if (code == 78) {
             if (vrMode && BleController.hasPermission(this)) BleController.start(applicationContext)
@@ -347,6 +356,7 @@ class VrRoomActivity : Activity() {
     override fun onResume() {
         super.onResume()
         glView.onResume()
+        if (vrMode && abyssMode) underwaterAmbience.start()
         if (vrMode) {
             renderer.startSensors()
             startAr()
@@ -356,6 +366,7 @@ class VrRoomActivity : Activity() {
     }
 
     override fun onPause() {
+        underwaterAmbience.stop()
         Choreographer.getInstance().removeFrameCallback(frameCb)
         stopAr()
         renderer.stopSensors()
@@ -365,6 +376,7 @@ class VrRoomActivity : Activity() {
     }
 
     override fun onDestroy() {
+        underwaterAmbience.stop()
         stopPcLink()
         stopHub()
         stopAr()
@@ -404,21 +416,26 @@ class VrRoomActivity : Activity() {
             typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
         })
         panel.addView(TextView(this).apply {
-            text = "PROTÓTIPO 01  •  PRINCÍPIO DE ARQUIMEDES"
+            text = "COCKPIT SUBMARINO  •  PRINCÍPIO DE ARQUIMEDES"
             textSize = 13f
             setTextColor(Color.rgb(113, 226, 236))
             gravity = Gravity.CENTER
             setPadding(0, dp(5), 0, dp(18))
         })
         panel.addView(TextView(this).apply {
-            text = """Você está vendo uma simulação submarina em primeira pessoa.
+            text = """Você está dentro da cabine de um submarino de pesquisa. O casco é fechado: use o sonar e os instrumentos do painel para entender o que acontece do lado de fora.
 
-Olhe para a esfera AZUL para adicionar ar à bolsa de flutuação.
-Olhe para a esfera LARANJA para liberar ar.
+SEIS SETAS PEQUENAS NA BANCADA — USE AS MÃOS:
+• Basta apoiar a palma da mão sobre uma das placas. Não precisa pinçar nem apontar.
+• ← / → movem o submarino para a esquerda e direita; frente / trás alteram a posição no mapa à direita.
+• ↑ / ↓ alteram a profundidade-alvo em passos de 35 metros. A profundidade muda suavemente e o medidor acompanha a descida/subida.
+• A janela escura fica à esquerda. Apoie a mão no botão FOTO ao lado das setas para tirar uma imagem do fundo.
+• A partir de 90 metros, a foto pode revelar o tesouro escondido. Antes disso, a câmera captura apenas vultos na escuridão.
+• Tire a mão da placa para liberar o próximo acionamento. Olhar e movimento da cabeça servem apenas para olhar ao redor.
 
-Mantenha o olhar no controle por cerca de 1,2 segundo. A bolsa maior desloca mais água e aumenta o empuxo. Ajuste o ar até alinhar a cápsula de resgate dentro do aro.
+A missão começa a 8 metros de profundidade, perto da superfície, com o tanque de O2 cheio (30 segundos de reserva). O sonar apresenta ecos simulados; pressão e vazamento passam a ameaçar o submarino a partir de 180 metros.
 
-No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
+Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por um instante para calibrar esquerda e direita; depois pode usar apenas uma mão para alcançar qualquer uma das seis setas. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f
             setTextColor(Color.rgb(230, 245, 250))
             gravity = Gravity.CENTER
@@ -434,7 +451,7 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             setOnClickListener { enterVr() }
         }, LinearLayout.LayoutParams(dp(280), dp(54)).apply { gravity = Gravity.CENTER })
         panel.addView(TextView(this).apply {
-            text = "Protótipo experimental — cenário e interação em desenvolvimento"
+            text = "Etapa 1: cockpit e sistemas básicos do submarino"
             textSize = 11f
             setTextColor(Color.rgb(165, 198, 210))
             gravity = Gravity.CENTER
@@ -1018,6 +1035,7 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
     }
 
     private fun enterVr(fullscreen: Boolean = false) {
+        if (abyssMode) renderer.resetAbyssMission()
         state.fullscreen = fullscreen
         if (!renderer.hasSensor && !fullscreen) toast("Este aparelho não tem sensor de rotação (giroscópio).")
         if (!abyssMode) {
@@ -1025,6 +1043,7 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             if (currentUrl.isEmpty()) currentUrl = homeUrl
         }
         vrMode = true
+        if (abyssMode) underwaterAmbience.start()
         applyExtras(); extras?.recenter()
         startPanel.visibility = View.GONE
         glView.visibility = View.VISIBLE
@@ -1047,6 +1066,8 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
 
     private fun exitVr() {
         vrMode = false
+        state.abyssAudioCues.clear()
+        underwaterAmbience.stop()
         extras?.stop()
         stopHub()
         stopPcLink()
@@ -1169,8 +1190,13 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             tracker = t
             renderer.tracker = t
         }
-        t.wantHands = if (state.twoHands) 2 else 1
+        // A calibração de identidade do Abismo precisa ver as duas mãos ao mesmo tempo.
+        t.wantHands = if (abyssMode || state.twoHands) 2 else 1
         t.start()
+        if (abyssMode && !abyssHandsCalibrationNotice) {
+            abyssHandsCalibrationNotice = true
+            toast("Calibrar as mãos: deixe as DUAS palmas abertas visíveis à câmera, a 20–60 cm e com boa luz. Depois pode usar só uma.")
+        }
     }
 
     private fun stopHands() {
@@ -1512,6 +1538,14 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             refreshUi()
             refreshStatus(now)
 
+            // A thread GL pode pedir efeitos sem tocar diretamente no AudioTrack.
+            var cueCount = 0
+            while (cueCount < 8) {
+                val cue = state.abyssAudioCues.poll() ?: break
+                underwaterAmbience.playCue(cue)
+                cueCount++
+            }
+
             Choreographer.getInstance().postFrameCallback(this)
         }
     }
@@ -1536,6 +1570,12 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
         }
         val l1 = "GL ${state.glFps} fps  |  ARCore: $ar  |  Mãos: $hs"
         var l2 = tracker?.info() ?: "tracker não iniciado"
+        val gestureText = synchronized(state.handLock) {
+            val left = if (state.handValid[0]) "E: ${HandGesture.label(state.handGesture[0])}" else "E: —"
+            val right = if (state.handValid[1]) "D: ${HandGesture.label(state.handGesture[1])}" else "D: —"
+            "$left  $right"
+        }
+        l2 += " | gestos: $gestureText"
         if (renderer.camErr.isNotEmpty()) l2 += " | ${renderer.camErr}"
         if (renderer.arErr.isNotEmpty()) l2 += " | erro AR: ${renderer.arErr}"
         val sig = l1 + l2
@@ -1667,6 +1707,7 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             var pinch = false
             var closing = false
             var ratio = 1f
+            var gesture = HandGesture.NONE
             var px = 0f
             var py = 0f
             var pz = 0f
@@ -1677,10 +1718,16 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
                         pinch = s.handPinch[i]
                         closing = s.handClosing[i]
                         ratio = s.handRatio[i]
+                        gesture = s.handGesture[i]
                         val p = s.handPts[i]
-                        px = (p[12] + p[24]) * 0.5f      // meio da pinça (pontas do polegar e do indicador)
-                        py = (p[13] + p[25]) * 0.5f
-                        pz = (p[14] + p[26]) * 0.5f
+                        if (gesture == HandGesture.POINT) {
+                            // Apontar move a mira pela ponta do indicador; a pinça continua sendo o clique.
+                            px = p[24]; py = p[25]; pz = p[26]
+                        } else {
+                            px = (p[12] + p[24]) * 0.5f
+                            py = (p[13] + p[25]) * 0.5f
+                            pz = (p[14] + p[26]) * 0.5f
+                        }
                     }
                 }
             }
@@ -2244,8 +2291,14 @@ No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             }
             VrUi.B_HLASER -> state.handLasers = !state.handLasers
             VrUi.B_TWO -> {
-                state.twoHands = !state.twoHands
-                tracker?.wantHands = if (state.twoHands) 2 else 1      // o rastreador se recria sozinho
+                if (abyssMode) {
+                    state.twoHands = true
+                    tracker?.wantHands = 2
+                    toast("No Abismo, mantenho as duas mãos ativadas para a calibração. Depois você pode jogar usando só uma.")
+                } else {
+                    state.twoHands = !state.twoHands
+                    tracker?.wantHands = if (state.twoHands) 2 else 1
+                }
             }
             VrUi.B_LITE -> {
                 state.lite = !state.lite

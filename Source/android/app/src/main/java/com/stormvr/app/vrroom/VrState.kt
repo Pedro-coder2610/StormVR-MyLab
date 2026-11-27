@@ -7,6 +7,7 @@ import kotlin.math.cos
 import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /** Tipos de alvo que um laser pode estar apontando. */
 object Hit {
@@ -50,6 +51,8 @@ class VrState {
     @Volatile var stereo = true
     // Modo experimental do projeto escolar: cena submarina com interação por olhar.
     @Volatile var abyssMode = false
+    /** Fila thread-safe para efeitos sonoros disparados pela thread GL. */
+    val abyssAudioCues = ConcurrentLinkedQueue<Int>()
     @Volatile var recenter = true
     @Volatile var rotation = 0
 
@@ -97,6 +100,7 @@ class VrState {
     val handValid = BooleanArray(2)
     val handPinch = BooleanArray(2)
     val handRatio = floatArrayOf(1f, 1f)   // distância polegar-indicador / tamanho da mão
+    val handGesture = IntArray(2) { HandGesture.NONE } // gesto reconhecido e estabilizado por mão
     val handClosing = BooleanArray(2)      // pinça se fechando (cursor deve congelar)
     // bolinha da pinça = cursor (na linha olho -> alvo, na distância da mão)
     val ball = Array(2) { FloatArray(3) }

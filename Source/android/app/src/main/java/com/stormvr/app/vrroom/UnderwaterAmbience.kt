@@ -6,6 +6,7 @@ import android.media.AudioTrack
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * Ambiência procedural simples para o modo Abismo.
@@ -16,11 +17,24 @@ internal class UnderwaterAmbience {
         private const val SAMPLE_RATE = 22050
         private const val BLOCK_FRAMES = 512
         private const val TWO_PI = (2.0 * PI).toFloat()
+
+        const val CUE_BUTTON = 1
+        const val CUE_PHOTO = 2
+        const val CUE_PIPE = 3
+        const val CUE_TREASURE = 4
+        const val CUE_SURFACE = 5
+        const val CUE_WARNING = 6
     }
 
     @Volatile private var running = false
     @Volatile private var activeTrack: AudioTrack? = null
     private var audioThread: Thread? = null
+    private val cueQueue = ConcurrentLinkedQueue<Int>()
+
+    /** Sons curtos de interação, enfileirados a partir da thread do jogo. */
+    fun playCue(type: Int) {
+        if (running) cueQueue.offer(type)
+    }
 
     @Synchronized
     fun start() {
@@ -61,7 +75,7 @@ internal class UnderwaterAmbience {
         }
 
         try {
-            output.setVolume(0.30f)
+            output.setVolume(0.46f)
             output.play()
         } catch (_: Exception) {
             output.release()
@@ -109,6 +123,12 @@ internal class UnderwaterAmbience {
         var bubbleAge = -1f
         var bubblePhase = 0f
         var nextBubbleAt = SAMPLE_RATE * 5L
+        var sonarAge = -1f
+        var sonarPhase = 0f
+        var nextSonarAt = SAMPLE_RATE * 3L
+        var cueType = 0
+        var cueAge = 0f
+        var cuePhase = 0f
         var randomState = 0x13579BDF
 
         fun randomUnit(): Float {
@@ -118,6 +138,11 @@ internal class UnderwaterAmbience {
 
         try {
             while (running && activeTrack === output) {
+                cueQueue.poll()?.let { requested ->
+                    cueType = requested
+                    cueAge = 0f
+                    cuePhase = 0f
+                }
                 for (i in pcm.indices) {
                     val white = randomUnit() * 2f - 1f
                     slowNoise += (white - slowNoise) * 0.0018f
@@ -147,9 +172,69 @@ internal class UnderwaterAmbience {
                         }
                     }
 
-                    val water = (slowNoise * 2.8f + (midNoise - slowNoise) * 1.6f) * 0.62f
-                    val lowHull = sin(rumblePhaseA) * 0.025f + sin(rumblePhaseB) * 0.012f
-                    val sample = (water + lowHull + bubble).coerceIn(-0.72f, 0.72f)
+                    // Ping de sonar periódico, curto e suave, para a cabine não parecer silenciosa.
+                    if (frame >= nextSonarAt) {
+                        sonarAge = 0f
+                        sonarPhase = 0f
+                        nextSonarAt = frame + SAMPLE_RATE * 8L
+                    }
+                    var sonar = 0f
+                    if (sonarAge >= 0f) {
+                        val st = sonarAge / 0.62f
+                        if (st >= 1f) sonarAge = -1f else {
+                            sonarPhase += TWO_PI * (980f - 260f * st) / SAMPLE_RATE
+                            sonar = sin(sonarPhase) * exp(-st * 5.0f) * 0.12f
+                            sonarAge += 1f / SAMPLE_RATE
+                        }
+                    }
+
+                    // Efeitos pontuais: clique, obturador, vazamento, descoberta, recarga e alerta de O2.
+                    var effect = 0f
+                    if (cueType != 0) {
+                        val duration = when (cueType) {
+                            CUE_BUTTON -> 0.10f
+                            CUE_PHOTO -> 0.28f
+                            CUE_PIPE -> 0.90f
+                            CUE_TREASURE -> 1.35f
+                            CUE_SURFACE -> 0.95f
+                            else -> 0.62f
+                        }
+                        val ct = cueAge / duration
+                        if (ct >= 1f) {
+                            cueType = 0
+                        } else {
+                            val attack = (1f - exp(-ct * 55f)).coerceIn(0f, 1f)
+                            val decay = exp(-ct * if (cueType == CUE_PIPE) 2.4f else 5.5f)
+                            val env = attack * decay
+                            val tone = when (cueType) {
+                                CUE_BUTTON -> sin(cuePhase) * 0.13f
+                                CUE_PHOTO -> sin(cuePhase) * 0.16f + white * exp(-ct * 38f) * 0.11f
+                                CUE_PIPE -> sin(cuePhase) * 0.10f + sin(cuePhase * 0.47f) * 0.07f
+                                CUE_TREASURE -> sin(cuePhase) * 0.16f
+                                CUE_SURFACE -> sin(cuePhase) * 0.12f + sin(cuePhase * 1.5f) * 0.05f
+                                else -> sin(cuePhase) * 0.12f
+                            }
+                            effect = tone * env
+                            val frequency = when (cueType) {
+                                CUE_BUTTON -> 760f
+                                CUE_PHOTO -> 1480f - 620f * ct
+                                CUE_PIPE -> 92f - 35f * ct
+                                CUE_TREASURE -> when {
+                                    ct < 0.34f -> 523.25f
+                                    ct < 0.67f -> 659.25f
+                                    else -> 783.99f
+                                }
+                                CUE_SURFACE -> if (ct < 0.5f) 440f else 587.33f
+                                else -> if ((ct * 5f).toInt() % 2 == 0) 720f else 540f
+                            }
+                            cuePhase += TWO_PI * frequency / SAMPLE_RATE
+                            cueAge += 1f / SAMPLE_RATE
+                        }
+                    }
+
+                    val water = (slowNoise * 2.8f + (midNoise - slowNoise) * 1.6f) * 0.82f
+                    val lowHull = sin(rumblePhaseA) * 0.045f + sin(rumblePhaseB) * 0.022f
+                    val sample = (water + lowHull + bubble + sonar + effect).coerceIn(-0.88f, 0.88f)
                     pcm[i] = (sample * Short.MAX_VALUE).toInt().toShort()
                     frame++
                 }

@@ -882,6 +882,14 @@ class HandTracker(
                     identityCalibrated = true
                 }
             }
+            if (identityCalibrated) {
+                val aSide = labelSlot(a)
+                val bSide = labelSlot(b)
+                if (aSide >= 0 && bSide >= 0 && aSide != bSide) {
+                    slot[0] = aSide
+                    slot[1] = bSide
+                }
+            }
         } else if (dets.size == 1) {
             val d = dets[0]
             val c = contSlot(d)

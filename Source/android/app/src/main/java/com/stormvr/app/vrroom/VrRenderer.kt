@@ -690,6 +690,7 @@ class VrRenderer(
     private var abyssCurrent = 0f
     private var abyssOxygen = 30f
     private var abyssPipeBurst = false
+    private var abyssLowOxygenWarned = false
     private var abyssMissionTime = 0f
     private var abyssStableTime = 0f
     private var abyssMissionState = 0 // 0 em andamento, 1 tesouro encontrado, 2 oxigênio esgotado
@@ -707,10 +708,12 @@ class VrRenderer(
     // Seis placas compactas em uma área de alcance natural, duas colunas por três linhas.
     // Cada linha corresponde a um eixo: X (lados), Y (frente/trás), Z (subir/descer).
     private val abyssPadX = floatArrayOf(-0.13f, 0.13f, -0.13f, 0.13f, -0.13f, 0.13f)
-    private val abyssPadY = floatArrayOf(0.46f, 0.46f, 0.60f, 0.60f, 0.74f, 0.74f)
+    private val abyssPadY = floatArrayOf(0.42f, 0.42f, 0.60f, 0.60f, 0.78f, 0.78f)
     private val abyssPadTopZ = -0.405f
     private var abyssActiveButton = -1
     private val abyssHandHeldButton = IntArray(2) { -1 }
+    private val abyssHandCandidateButton = IntArray(2) { -1 }
+    private val abyssHandCandidateSinceNs = LongArray(2)
     private val abyssButtonFlash = FloatArray(7)
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -1634,18 +1637,27 @@ class VrRenderer(
                 abyssDepthMeters = nextDepth
             }
 
-            // Pressão rompe a tubulação em grande profundidade e consome O2 progressivamente.
-            if (abyssDepthMeters >= 180f) abyssPipeBurst = true
+            // A primeira entrada na zona crítica dispara o ruído metálico do cano rompendo.
+            if (abyssDepthMeters >= 180f && !abyssPipeBurst) {
+                abyssPipeBurst = true
+                st.abyssAudioCues.offer(UnderwaterAmbience.CUE_PIPE)
+            }
             if (abyssPipeBurst) {
                 val pressureLoad = ((abyssDepthMeters - 180f) / 120f).coerceIn(0f, 1f)
                 // O tanque de emergência tem 30 segundos; a pressão aumenta a velocidade do vazamento.
                 abyssOxygen = (abyssOxygen - dt * (1.0f + pressureLoad * 0.35f)).coerceAtLeast(0f)
+                if (abyssOxygen in 0.01f..10f && !abyssLowOxygenWarned) {
+                    abyssLowOxygenWarned = true
+                    st.abyssAudioCues.offer(UnderwaterAmbience.CUE_WARNING)
+                }
 
                 // Se alcançar a zona de superfície antes de zerar, o sistema sela o cano e
                 // recarrega automaticamente o tanque de emergência para um novo mergulho.
                 if (abyssOxygen > 0f && abyssDepthMeters <= 10f) {
                     abyssPipeBurst = false
+                    abyssLowOxygenWarned = false
                     abyssOxygen = 30f
+                    st.abyssAudioCues.offer(UnderwaterAmbience.CUE_SURFACE)
                 }
 
                 if (abyssOxygen <= 0f && abyssMissionState == 0) {
@@ -1666,7 +1678,11 @@ class VrRenderer(
         }
         if (abyssMissionState != 0) {
             abyssActiveButton = -1
-            for (h in 0..1) abyssHandHeldButton[h] = -1
+            for (h in 0..1) {
+                abyssHandHeldButton[h] = -1
+                abyssHandCandidateButton[h] = -1
+                abyssHandCandidateSinceNs[h] = 0L
+            }
             return
         }
 
@@ -1676,6 +1692,8 @@ class VrRenderer(
             for (h in 0..1) {
                 if (!st.handValid[h]) {
                     abyssHandHeldButton[h] = -1
+                    abyssHandCandidateButton[h] = -1
+                    abyssHandCandidateSinceNs[h] = 0L
                     continue
                 }
                 val pts = st.handPts[h]
@@ -1689,7 +1707,7 @@ class VrRenderer(
                 val photoDx = palmX - abyssPhotoButtonX
                 val photoDy = palmY - abyssPhotoButtonY
                 val photoDz = palmZ - abyssPhotoButtonZ
-                val overPhoto = abs(photoDx) < 0.24f && abs(photoDy) < 0.20f && abs(photoDz) < 0.48f
+                val overPhoto = abs(photoDx) < 0.15f && abs(photoDy) < 0.10f && abs(photoDz) < 0.38f
                 if (overPhoto) {
                     candidate = 6
                 } else {
@@ -1697,8 +1715,9 @@ class VrRenderer(
                         val dx = palmX - abyssPadX[button]
                         val dy = palmY - abyssPadY[button]
                         val dz = palmZ - abyssPadTopZ
-                        if (abs(dx) > 0.22f || abs(dy) > 0.17f || abs(dz) > 0.55f) continue
-                        val score = dx * dx / 0.0484f + dy * dy / 0.0289f + dz * dz / 0.3025f
+                        // Zonas de toque menores que o espaçamento entre placas: uma palma não ocupa duas setas.
+                        if (abs(dx) > 0.105f || abs(dy) > 0.075f || abs(dz) > 0.38f) continue
+                        val score = dx * dx / 0.011025f + dy * dy / 0.005625f + dz * dz / 0.1444f
                         if (score < bestScore) {
                             bestScore = score
                             candidate = button
@@ -1706,30 +1725,41 @@ class VrRenderer(
                     }
                 }
 
-                // Um acionamento por entrada na área; retirar a palma rearma o botão.
-                if (candidate >= 0 && candidate != abyssHandHeldButton[h]) {
+                // Exige manter a palma na mesma zona por 140 ms. Cruzar uma seta ao mover a mão
+                // não dispara o comando vizinho; cada placa precisa de um apoio deliberado.
+                if (candidate != abyssHandCandidateButton[h]) {
+                    abyssHandCandidateButton[h] = candidate
+                    abyssHandCandidateSinceNs[h] = nowNs
+                }
+                if (candidate < 0) {
+                    abyssHandHeldButton[h] = -1
+                } else if (candidate != abyssHandHeldButton[h] &&
+                    nowNs - abyssHandCandidateSinceNs[h] >= 140_000_000L) {
                     if (candidate == 6) takeAbyssPhoto(nowNs)
                     else activateAbyssButton(candidate)
+                    abyssHandHeldButton[h] = candidate
                     abyssButtonFlash[candidate] = 1f
                 }
-                abyssHandHeldButton[h] = candidate
-                if (candidate >= 0) abyssActiveButton = candidate
+                if (candidate >= 0 && candidate == abyssHandHeldButton[h]) abyssActiveButton = candidate
             }
         }
     }
 
     private fun takeAbyssPhoto(nowNs: Long) {
         abyssPhotoCount += 1
+        st.abyssAudioCues.offer(UnderwaterAmbience.CUE_PHOTO)
         abyssPhotoFlashUntilNs = nowNs + 220_000_000L
         abyssPhotoRevealUntilNs = nowNs + 3_000_000_000L
         // O tesouro está numa depressão do relevo e só aparece numa foto feita a pelo menos 90 m.
         if (abyssDepthMeters >= 90f && !abyssTreasureFound) {
             abyssTreasureFound = true
             abyssMissionState = 1
+            st.abyssAudioCues.offer(UnderwaterAmbience.CUE_TREASURE)
         }
     }
 
     private fun activateAbyssButton(button: Int) {
+        st.abyssAudioCues.offer(UnderwaterAmbience.CUE_BUTTON)
         when (button) {
             0 -> abyssPodX = (abyssPodX - 0.16f).coerceIn(-1.2f, 1.2f) // esquerda
             1 -> abyssPodX = (abyssPodX + 0.16f).coerceIn(-1.2f, 1.2f) // direita
@@ -2264,7 +2294,7 @@ class VrRenderer(
         box(1.78f, -1.18f, -1.22f, 0.78f, 0.66f, 0.48f, hullAlt)
         box(0f, -0.85f, 1.86f, 0.72f, 0.42f, 0.20f, hullAlt)
         // Apoio rebaixado para os comandos: operáveis com as mãos perto do colo, sem braços erguidos.
-        box(0f, 0.60f, -0.68f, 1.02f, 0.42f, 0.48f, panel)
+        box(0f, 0.60f, -0.68f, 1.02f, 0.54f, 0.48f, panel)
         box(-0.43f, 0.72f, -0.50f, 0.12f, 0.24f, 0.32f, hullAlt)
         box(0.43f, 0.72f, -0.50f, 0.12f, 0.24f, 0.32f, hullAlt)
 

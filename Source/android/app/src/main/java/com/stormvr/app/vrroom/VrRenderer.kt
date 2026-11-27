@@ -957,7 +957,7 @@ class VrRenderer(
         }
         if (alpha >= 1f && !abyssExitRequested) {
             abyssExitRequested = true
-            (context as? Activity)?.runOnUiThread { finishAffinity() }
+            (context as? Activity)?.let { activity -> activity.runOnUiThread { activity.finishAffinity() } }
         }
     }
 

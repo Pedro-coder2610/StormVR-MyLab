@@ -245,9 +245,13 @@ class HandTracker(
     private val gestureCandidate = IntArray(2) { HandGesture.NONE }
     private val gestureFrames = IntArray(2)
     private var swapVotes = 3      // >= 0: o rótulo do MediaPipe vem invertido (imagem não espelhada)
+    // A identidade esquerda/direita só fica liberada depois de ver as duas mãos juntas.
+    private var identityCalibrated = false
 
     fun start() {
         if (running) return
+        identityCalibrated = false
+        swapVotes = 3
         sem.drainPermits()
         synchronized(qLock) { pend = -1; proc = -1 }
         errorShown = false
@@ -866,20 +870,24 @@ class HandTracker(
             }
             slot[0] = sa
             slot[1] = sb
-            // calibração automática do rótulo: com as duas mãos bem separadas, a da esquerda da imagem é a esquerda
+            // Calibra a inversão da câmera somente quando as duas mãos estão visíveis e separadas.
+            // A mão mais à esquerda na imagem define qual rótulo do MediaPipe representa a mão física esquerda.
             if (abs(a.wristU - b.wristU) > 0.2f) {
                 val leftDet = if (a.wristU <= b.wristU) a else b
-                if (leftDet.label.isNotEmpty()) {
-                    swapVotes = (swapVotes + (if (leftDet.label == "Right") 1 else -1)).coerceIn(-20, 20)
+                val rightDet = if (a.wristU <= b.wristU) b else a
+                if (leftDet.score >= 0.5f && rightDet.score >= 0.5f &&
+                    (leftDet.label == "Left" || leftDet.label == "Right") &&
+                    (rightDet.label == "Left" || rightDet.label == "Right")) {
+                    swapVotes = if (leftDet.label == "Right") 3 else -3
+                    identityCalibrated = true
                 }
             }
         } else if (dets.size == 1) {
             val d = dets[0]
             val c = contSlot(d)
-            slot[0] = if (c >= 0) c else {
-                val ls = labelSlot(d)
-                if (ls >= 0) ls else if (d.wristU < 0.5f) 0 else 1
-            }
+            // Antes da calibração, não inventa que uma mão isolada é a direita.
+            // Depois que as duas foram vistas juntas, continuidade/rótulo mantêm o lado correto.
+            slot[0] = if (c >= 0) c else if (identityCalibrated) labelSlot(d) else -1
         }
 
         val seen = BooleanArray(2)

@@ -676,6 +676,7 @@ class VrRenderer(
     private var abyssPodHeight = -0.40f
     private var abyssCurrent = 0f
     private var abyssOxygen = 180f
+    private var abyssPipeBurst = false
     private var abyssMissionTime = 0f
     private var abyssStableTime = 0f
     private var abyssMissionState = 0 // 0 em andamento, 1 resgate concluído, 2 oxigênio esgotado
@@ -1563,6 +1564,15 @@ class VrRenderer(
             val buoyancy = (abyssAirLevel - 0.5f) * 1.20f
             abyssPodVelocity += (buoyancy + abyssCurrent - abyssPodVelocity * 1.10f) * dt
             abyssPodHeight = (abyssPodHeight + abyssPodVelocity * dt * 1.2f).coerceIn(-1.35f, 1.35f)
+
+            // Em grande profundidade, a pressão rompe uma tubulação e o vazamento consome O2.
+            if (abyssPodHeight <= -0.95f) abyssPipeBurst = true
+            if (abyssPipeBurst) {
+                val pressureLoad = ((-abyssPodHeight - 0.95f) / 0.40f).coerceIn(0f, 1f)
+                abyssOxygen = (abyssOxygen - dt * (0.55f + pressureLoad * 0.65f)).coerceAtLeast(0f)
+                if (abyssOxygen <= 0f) abyssMissionState = 2
+            }
+
             abyssStableTime = if (abs(abyssPodVelocity) < 0.08f) {
                 (abyssStableTime + dt).coerceAtMost(10f)
             } else {
@@ -1672,6 +1682,21 @@ class VrRenderer(
                 'D' -> intArrayOf(0, 1, 2, 4, 5, 6)
                 'E' -> intArrayOf(0, 1, 3, 4, 6)
                 'C' -> intArrayOf(0, 1, 4, 6)
+                'O', '0' -> intArrayOf(0, 1, 2, 4, 5, 6)
+                '1' -> intArrayOf(2, 5)
+                '2' -> intArrayOf(0, 2, 3, 4, 6)
+                '3' -> intArrayOf(0, 2, 3, 5, 6)
+                '4' -> intArrayOf(1, 2, 3, 5)
+                '5' -> intArrayOf(0, 1, 3, 5, 6)
+                '6' -> intArrayOf(0, 1, 3, 4, 5, 6)
+                '7' -> intArrayOf(0, 2, 5)
+                '8' -> intArrayOf(0, 1, 2, 3, 4, 5, 6)
+                '9' -> intArrayOf(0, 1, 2, 3, 5, 6)
+                'X' -> intArrayOf(9, 10)
+                'Y' -> intArrayOf(9, 10, 8)
+                'Z' -> intArrayOf(0, 2, 3, 4, 6, 10)
+                '-' -> intArrayOf(3)
+                ' ' -> intArrayOf()
                 else -> intArrayOf()
             }
             for (segment in segments) {
@@ -1688,7 +1713,9 @@ class VrRenderer(
                     5 -> { x1 = x0 + w; z1 = cz + height * 0.5f; x2 = x0 + w; z2 = cz }
                     6 -> { x1 = x0; z1 = cz; x2 = x0 + w; z2 = cz }
                     7 -> { x1 = x0 + w * 0.48f; z1 = cz + height * 0.46f; x2 = x0 + w; z2 = cz }
-                    else -> { x1 = x0 + w * 0.5f; z1 = cz + height; x2 = x0 + w * 0.5f; z2 = cz }
+                    8 -> { x1 = x0 + w * 0.5f; z1 = cz + height; x2 = x0 + w * 0.5f; z2 = cz }
+                    9 -> { x1 = x0; z1 = cz + height; x2 = x0 + w; z2 = cz }
+                    else -> { x1 = x0; z1 = cz; x2 = x0 + w; z2 = cz + height }
                 }
                 drawBone(x1, y, z1, x2, y, z2, 0.0055f, 0.0055f)
             }
@@ -1710,36 +1737,37 @@ class VrRenderer(
         cx: Float, y: Float, cz: Float, color: FloatArray,
         selected: Boolean, progress: Float, positive: Boolean
     ) {
-        // Aro metálico grande, botão convexo e parafusos: alvo visível e fácil de mirar.
+        // Push-button industrial compacto: base escura, aro curto e centro iluminado.
         abyssColor(abyssRock)
-        for (i in 0 until 32) {
-            val a0 = (i * 2.0 * PI / 32.0).toFloat()
-            val a1 = ((i + 0.78) * 2.0 * PI / 32.0).toFloat()
+        drawSphere(cx, y + 0.015f, cz, 0.145f)
+        for (i in 0 until 24) {
+            val a0 = (i * 2.0 * PI / 24.0).toFloat()
+            val a1 = ((i + 0.78) * 2.0 * PI / 24.0).toFloat()
             drawBone(
-                cx + cos(a0) * 0.39f, y, cz + sin(a0) * 0.39f,
-                cx + cos(a1) * 0.39f, y, cz + sin(a1) * 0.39f,
-                0.035f, 0.035f
+                cx + cos(a0) * 0.185f, y - 0.004f, cz + sin(a0) * 0.185f,
+                cx + cos(a1) * 0.185f, y - 0.004f, cz + sin(a1) * 0.185f,
+                0.012f, 0.012f
             )
         }
         for (i in 0 until 4) {
             val a = i * PI.toFloat() / 2f + PI.toFloat() / 4f
-            drawSphere(cx + cos(a) * 0.34f, y - 0.012f, cz + sin(a) * 0.34f, 0.028f)
+            drawSphere(cx + cos(a) * 0.155f, y - 0.008f, cz + sin(a) * 0.155f, 0.014f)
         }
         abyssColor(if (selected && progress > 0.05f) abyssWhite else color)
-        drawSphere(cx, y - 0.035f, cz, 0.245f)
+        drawSphere(cx, y - 0.026f, cz, 0.108f)
         // Seta gravada no botão: azul sobe, laranja desce.
-        drawAbyssArrow(cx, y - 0.255f, cz, positive, abyssWhite)
+        drawAbyssArrow(cx, y - 0.105f, cz, positive, abyssWhite)
 
-        // O aro dá feedback visual do acionamento por pinça.
-        val filled = (progress.coerceIn(0f, 1f) * 32f).toInt()
-        for (i in 0 until 32) {
-            val a0 = (i * 2.0 * PI / 32.0).toFloat()
-            val a1 = ((i + 0.75) * 2.0 * PI / 32.0).toFloat()
+        // Aro curto mostra o acionamento por pinça.
+        val filled = (progress.coerceIn(0f, 1f) * 24f).toInt()
+        for (i in 0 until 24) {
+            val a0 = (i * 2.0 * PI / 24.0).toFloat()
+            val a1 = ((i + 0.75) * 2.0 * PI / 24.0).toFloat()
             abyssColor(if (selected && i < filled) abyssWhite else abyssRock)
             drawBone(
-                cx + cos(a0) * 0.46f, y - 0.015f, cz + sin(a0) * 0.46f,
-                cx + cos(a1) * 0.46f, y - 0.015f, cz + sin(a1) * 0.46f,
-                0.012f, 0.012f
+                cx + cos(a0) * 0.205f, y - 0.012f, cz + sin(a0) * 0.205f,
+                cx + cos(a1) * 0.205f, y - 0.012f, cz + sin(a1) * 0.205f,
+                0.008f, 0.008f
             )
         }
     }
@@ -1797,9 +1825,9 @@ class VrRenderer(
         box(1.78f, -1.18f, -1.22f, 0.78f, 0.66f, 0.48f, hullAlt)
         box(0f, -0.85f, 1.86f, 0.72f, 0.42f, 0.20f, hullAlt)
         // Apoio rebaixado para os comandos: operáveis com as mãos perto do colo, sem braços erguidos.
-        box(0f, 0.50f, -0.66f, 1.96f, 0.42f, 0.48f, panel)
-        box(-0.78f, 0.68f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
-        box(0.78f, 0.68f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
+        box(0f, 0.82f, -0.66f, 1.96f, 0.42f, 0.48f, panel)
+        box(-0.78f, 1.00f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
+        box(0.78f, 1.00f, -0.48f, 0.22f, 0.30f, 0.42f, hullAlt)
 
         // Escotilha traseira estanque — sem janela para o exterior.
         beginAbyssOrganic()
@@ -1845,13 +1873,36 @@ class VrRenderer(
         drawBone(1.92f, 1.12f, 1.48f, 1.25f, 1.12f, 1.48f, 0.060f, 0.060f)
         abyssColor(abyssOrange)
         drawBone(-1.92f, 1.12f, -1.24f, -1.92f, -1.64f, -1.24f, 0.045f, 0.045f)
-        drawBone(1.92f, 1.12f, -1.24f, 1.92f, -1.64f, -1.24f, 0.045f, 0.045f)
+        if (!abyssPipeBurst) {
+            drawBone(1.92f, 1.12f, -1.24f, 1.92f, -1.64f, -1.24f, 0.045f, 0.045f)
+        } else {
+            // Duas pontas separadas deixam visível o trecho que estourou.
+            drawBone(1.92f, 1.12f, -1.24f, 1.92f, 0.13f, -1.24f, 0.045f, 0.045f)
+            drawBone(1.92f, -0.13f, -1.24f, 1.92f, -1.64f, -1.24f, 0.045f, 0.045f)
+        }
         abyssColor(rust)
         for (side in floatArrayOf(-1f, 1f)) {
             for (yy in floatArrayOf(-1.35f, -0.25f, 0.85f)) {
                 drawBone(side * 1.92f, yy - 0.07f, 1.48f, side * 1.92f, yy + 0.07f, 1.48f, 0.085f, 0.085f)
                 drawBone(side * 1.92f, yy - 0.07f, -1.24f, side * 1.92f, yy + 0.07f, -1.24f, 0.065f, 0.065f)
             }
+        }
+
+        if (abyssPipeBurst) {
+            // Bolhas sobem do cano rompido; a luz vermelha avisa sobre o vazamento de O2.
+            abyssColor(abyssBlue)
+            for (i in 0 until 5) {
+                val phase = t * 1.7f + i * 1.15f
+                val rise = ((t * 0.42f + i * 0.17f) % 0.82f)
+                drawSphere(
+                    1.84f + sin(phase) * 0.045f,
+                    0.02f + cos(phase * 0.7f) * 0.035f,
+                    -1.20f + rise,
+                    0.025f + (i % 2) * 0.010f
+                )
+            }
+            abyssColor(if (sin(t * 5.5f) > 0f) abyssCoral else dimRed)
+            drawSphere(1.72f, 0.02f, -0.88f, 0.060f)
         }
 
         // Grelha do piso e cabos no teto.
@@ -1909,7 +1960,39 @@ class VrRenderer(
             0f, 1.535f, 0.02f, 1.30f, 0.92f)
         quadRoom(screen, 8f, 1.30f, 0.92f)
 
+        // Mapa físico na parede frontal, acima do painel de instrumentos.
+        basis(1f, 0f, 0f, 0f, 0f, 1f, 0f, -1f, 0f,
+            0f, 1.505f, 1.48f, 1.66f, 0.62f)
+        quadRoom(hullAlt, 8f, 1.66f, 0.62f)
+
         beginAbyssOrganic()
+
+        // Mapa de rota na parede: grade, posição do submarino, destino e coordenadas XYZ.
+        abyssColor(metal)
+        drawBone(-0.78f, 1.485f, 1.20f, 0.78f, 1.485f, 1.20f, 0.014f, 0.014f)
+        drawBone(-0.78f, 1.485f, 1.20f, -0.78f, 1.485f, 1.76f, 0.014f, 0.014f)
+        drawBone(0.78f, 1.485f, 1.20f, 0.78f, 1.485f, 1.76f, 0.014f, 0.014f)
+        drawBone(-0.78f, 1.485f, 1.76f, 0.78f, 1.485f, 1.76f, 0.014f, 0.014f)
+        abyssColor(abyssRock)
+        for (i in 1..6) {
+            val x = -0.78f + i * 0.22f
+            drawBone(x, 1.488f, 1.27f, x, 1.488f, 1.70f, 0.004f, 0.004f)
+        }
+        for (i in 1..3) {
+            val z = 1.20f + i * 0.14f
+            drawBone(-0.76f, 1.488f, z, 0.76f, 1.488f, z, 0.004f, 0.004f)
+        }
+        abyssColor(abyssBlue)
+        drawBone(-0.58f, 1.475f, 1.34f, -0.18f, 1.475f, 1.48f, 0.018f, 0.018f)
+        drawBone(-0.18f, 1.475f, 1.48f, 0.18f, 1.475f, 1.43f, 0.018f, 0.018f)
+        drawBone(0.18f, 1.475f, 1.43f, 0.58f, 1.475f, 1.64f, 0.018f, 0.018f)
+        abyssColor(abyssRingOk)
+        drawSphere(-0.58f, 1.465f, 1.34f, 0.045f)   // posição atual
+        abyssColor(abyssCoral2)
+        drawSphere(0.58f, 1.465f, 1.64f, 0.050f)    // destino
+        val depthCoord = (abyssPodHeight * 100f).toInt()
+        abyssColor(abyssWhite)
+        drawAbyssWord("X124 Y038 Z$depthCoord", 0f, 1.465f, 1.205f, 0.065f, abyssWhite)
 
         // Câmera externa: imagem propositalmente granulada e pouco confiável.
         abyssColor(pale)
@@ -1973,6 +2056,21 @@ class VrRenderer(
         // Instrumentos grandes e claros no campo de visão.
         drawAbyssGauge(-1.27f, 1.47f, 0.02f, 0.31f, depthGauge, abyssBlue)
         drawAbyssGauge(1.27f, 1.47f, 0.02f, 0.31f, pressureGauge, abyssCoral2)
+
+        // Indicador de oxigênio aparece no console e só cai depois do rompimento por pressão.
+        val oxygenRatio = (abyssOxygen / 180f).coerceIn(0f, 1f)
+        val oxygenColor = if (abyssOxygen < 35f) abyssCoral else if (abyssOxygen < 75f) abyssCoral2 else abyssRingOk
+        drawAbyssWord("O2", -0.43f, 1.455f, -0.70f, 0.075f, oxygenColor)
+        drawAbyssWord(abyssOxygen.toInt().toString(), 0.28f, 1.455f, -0.70f, 0.075f, oxygenColor)
+        for (i in 0 until 10) {
+            abyssColor(if (i < oxygenRatio * 10f) oxygenColor else abyssRock)
+            drawSphere(-0.18f + i * 0.075f, 1.45f, -0.60f, 0.018f)
+        }
+        if (abyssPipeBurst) {
+            abyssColor(if (abyssOxygen < 35f && sin(t * 5f) > 0f) abyssCoral else abyssCoral2)
+            drawAbyssWord("SUBA", 0f, 1.445f, -0.98f, 0.105f, abyssCoral2)
+        }
+
         // Indicador de lastro: LEDs acendem conforme a quantidade de ar.
         for (i in 0 until 8) {
             abyssColor(if (i < ballastGauge * 8f) abyssBlue else abyssRock)
@@ -1985,12 +2083,12 @@ class VrRenderer(
         drawSphere(-1.72f, 1.43f, 0.56f, 0.025f)
 
         // Módulo de comandos abaixo do console principal, junto à altura da cintura/mãos descansadas.
-        drawAbyssControl(-0.48f, 0.30f, -0.66f, abyssBlue,
+        drawAbyssControl(-0.48f, 0.62f, -0.66f, abyssBlue,
             abyssActiveControl == 1, abyssPressFlash[0], true)
-        drawAbyssControl(0.48f, 0.30f, -0.66f, abyssOrange,
+        drawAbyssControl(0.48f, 0.62f, -0.66f, abyssOrange,
             abyssActiveControl == 2, abyssPressFlash[1], false)
-        drawAbyssWord("SUBIR", -0.48f, 0.285f, -0.30f, 0.11f, abyssBlue)
-        drawAbyssWord("DESCER", 0.48f, 0.285f, -0.30f, 0.11f, abyssOrange)
+        drawAbyssWord("SUBIR", -0.48f, 0.605f, -0.42f, 0.08f, abyssBlue)
+        drawAbyssWord("DESCER", 0.48f, 0.605f, -0.42f, 0.08f, abyssOrange)
     }
 
     private fun drawRoom() {

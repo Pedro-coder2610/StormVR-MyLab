@@ -269,7 +269,7 @@ class VrRoomActivity : Activity() {
         loadPrefs()
         abyssMode = intent.getBooleanExtra(EXTRA_ABYSS_MODE, false)
         if (abyssMode) {
-            // No Abismo, a cabeça só movimenta a visão; os comandos funcionam exclusivamente por pinça.
+            // No Abismo, a cabeça só movimenta a visão; comandos exigem aproximar a ponta do indicador e apontar ou fazer pinça.
             state.abyssMode = true
             state.stereo = true
             state.sixDof = false
@@ -425,16 +425,17 @@ class VrRoomActivity : Activity() {
         panel.addView(TextView(this).apply {
             text = """Você está dentro da cabine de um submarino de pesquisa. O casco é fechado: use o sonar e os instrumentos do painel para entender o que acontece do lado de fora.
 
-CONTROLES DO LASTRO — SOMENTE COM AS MÃOS:
-• Mão ESQUERDA: faça uma pinça para acionar o botão AZUL e ganhar flutuabilidade.
-• Mão DIREITA: faça uma pinça para acionar o botão LARANJA e reduzir a flutuabilidade.
-• Abra os dedos para soltar; faça uma nova pinça para aplicar outro ajuste.
-• Os comandos ficam rebaixados, próximos ao colo. Não é preciso manter os braços erguidos.
+SEIS SETAS NA BANCADA — USE AS MÃOS:
+• Aproxime a ponta do indicador de uma placa e aponte ou faça pinça para acioná-la.
+• ← / → movem o submarino para a esquerda e direita no mapa.
+• Frente / trás movem a posição Y no mapa.
+• ↑ / ↓ controlam o lastro para subir ou descer.
+• A placa acende brevemente quando reconhece o comando. Solte ou afaste a mão antes de pressionar outra.
 • Olhar e movimento da cabeça servem apenas para olhar ao redor — nunca acionam os botões.
 
 O sonar apresenta ecos simulados. Os mostradores acompanham a variação de profundidade, pressão e lastro. Esta primeira etapa é um teste livre de cockpit; a missão e a história serão desenvolvidas depois.
 
-Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por um instante para calibrar esquerda e direita; depois pode usar apenas uma. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
+Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por um instante para calibrar esquerda e direita; depois pode usar apenas uma mão para alcançar qualquer uma das seis setas. No VR Box, coloque o celular na horizontal. Para sair, pressione Voltar."""
             textSize = 15f
             setTextColor(Color.rgb(230, 245, 250))
             gravity = Gravity.CENTER

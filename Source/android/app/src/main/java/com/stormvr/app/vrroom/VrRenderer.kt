@@ -2298,6 +2298,16 @@ class VrRenderer(
         box(-0.43f, 0.72f, -0.50f, 0.12f, 0.24f, 0.32f, hullAlt)
         box(0.43f, 0.72f, -0.50f, 0.12f, 0.24f, 0.32f, hullAlt)
 
+        // Fundo da cabine: armários de manutenção, caixas de ferramentas e prateleira de emergência.
+        box(-1.24f, -1.84f, -0.58f, 0.62f, 0.42f, 0.90f, hullAlt)
+        box(1.24f, -1.84f, -0.58f, 0.62f, 0.42f, 0.90f, hullAlt)
+        box(-1.24f, -1.60f, -0.58f, 0.50f, 0.07f, 0.74f, panel)
+        box(1.24f, -1.60f, -0.58f, 0.50f, 0.07f, 0.74f, panel)
+        box(-1.22f, -1.30f, -1.30f, 0.72f, 0.48f, 0.34f, panel)
+        box(1.22f, -1.30f, -1.30f, 0.72f, 0.48f, 0.34f, panel)
+        box(0f, -1.88f, 1.42f, 2.55f, 0.34f, 0.18f, metal)
+        box(0f, -1.67f, 1.30f, 1.92f, 0.10f, 0.08f, hullAlt)
+
         // Escotilha traseira estanque — sem janela para o exterior.
         beginAbyssOrganic()
         abyssColor(metal)
@@ -2317,6 +2327,36 @@ class VrRenderer(
                 cos(a) * 0.78f, -2.20f, 0.18f + sin(a) * 0.78f, 0.035f, 0.035f)
             drawSphere(cos(a) * 0.82f, -2.18f, 0.18f + sin(a) * 0.82f, 0.045f)
         }
+
+        // Cilindros reserva de emergência e faixas de identificação no fundo.
+        for (side in floatArrayOf(-1f, 1f)) {
+            val x = side * 1.24f
+            abyssColor(abyssBlue)
+            drawBone(x, -1.55f, -0.98f, x, -1.55f, -0.20f, 0.105f, 0.105f)
+            drawSphere(x, -1.55f, -1.00f, 0.105f)
+            drawSphere(x, -1.55f, -0.18f, 0.105f)
+            abyssColor(abyssOrange)
+            drawBone(x, -1.55f, -0.72f, x, -1.55f, -0.62f, 0.112f, 0.112f)
+            abyssColor(metal)
+            drawBone(x - 0.19f, -1.54f, -0.14f, x + 0.19f, -1.54f, -0.14f, 0.025f, 0.025f)
+        }
+
+        // Carretel de cabo, ferramentas penduradas e luz de serviço.
+        abyssColor(metal)
+        for (i in 0 until 28) {
+            val a0 = i * twoPi / 28f
+            val a1 = (i + 1) * twoPi / 28f
+            drawBone(cos(a0) * 0.28f, -1.64f, 1.48f + sin(a0) * 0.28f,
+                cos(a1) * 0.28f, -1.64f, 1.48f + sin(a1) * 0.28f, 0.022f, 0.022f)
+        }
+        abyssColor(abyssOrange)
+        drawBone(1.55f, -1.63f, 0.28f, 1.55f, -1.63f, 1.02f, 0.028f, 0.028f)
+        drawBone(1.42f, -1.63f, 0.76f, 1.68f, -1.63f, 0.76f, 0.035f, 0.035f)
+        drawBone(-1.55f, -1.63f, 0.32f, -1.55f, -1.63f, 0.92f, 0.030f, 0.030f)
+        drawBone(-1.68f, -1.63f, 0.92f, -1.42f, -1.63f, 0.92f, 0.030f, 0.030f)
+        abyssColor(abyssRingOk)
+        drawSphere(0f, -1.60f, 1.20f, 0.055f)
+        drawAbyssWord("AR", 0f, -1.57f, 1.52f, 0.075f, abyssWhite)
 
         // Nervuras reforçadas nas paredes laterais e travessas aparentes.
         for (side in floatArrayOf(-1f, 1f)) {

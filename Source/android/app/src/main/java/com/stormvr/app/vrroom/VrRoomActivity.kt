@@ -1188,11 +1188,12 @@ Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por u
             tracker = t
             renderer.tracker = t
         }
-        t.wantHands = if (state.twoHands) 2 else 1
+        // A calibração de identidade do Abismo precisa ver as duas mãos ao mesmo tempo.
+        t.wantHands = if (abyssMode || state.twoHands) 2 else 1
         t.start()
         if (abyssMode && !abyssHandsCalibrationNotice) {
             abyssHandsCalibrationNotice = true
-            toast("Para calibrar os lados, mostre as DUAS mãos juntas à câmera por um instante. Depois pode usar só uma.")
+            toast("Calibrar as mãos: deixe as DUAS palmas abertas visíveis à câmera, a 20–60 cm e com boa luz. Depois pode usar só uma.")
         }
     }
 
@@ -2280,8 +2281,14 @@ Ao iniciar, permita o uso da câmera. Primeiro mostre as DUAS mãos juntas por u
             }
             VrUi.B_HLASER -> state.handLasers = !state.handLasers
             VrUi.B_TWO -> {
-                state.twoHands = !state.twoHands
-                tracker?.wantHands = if (state.twoHands) 2 else 1      // o rastreador se recria sozinho
+                if (abyssMode) {
+                    state.twoHands = true
+                    tracker?.wantHands = 2
+                    toast("No Abismo, mantenho as duas mãos ativadas para a calibração. Depois você pode jogar usando só uma.")
+                } else {
+                    state.twoHands = !state.twoHands
+                    tracker?.wantHands = if (state.twoHands) 2 else 1
+                }
             }
             VrUi.B_LITE -> {
                 state.lite = !state.lite
